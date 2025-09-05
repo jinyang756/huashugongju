@@ -3,35 +3,38 @@
  * 包含项目中使用的通用辅助功能
  */
 
+// 将工具函数挂载到全局对象
+const utils = window.utils = window.utils || {};
+
 // 获取元素并提供错误处理
-export function getElement(selector, parent = document) {
+utils.getElement = function(selector, parent = document) {
     const element = parent.querySelector(selector);
     if (!element) {
         console.warn(`元素未找到: ${selector}`);
     }
     return element;
-}
+};
 
 // 获取所有元素并提供错误处理
-export function getElements(selector, parent = document) {
+utils.getElements = function(selector, parent = document) {
     const elements = parent.querySelectorAll(selector);
     if (elements.length === 0) {
         console.warn(`没有找到元素: ${selector}`);
     }
     return elements;
-}
+};
 
 // 格式化日期时间
-export function formatDateTime(date = new Date()) {
+utils.formatDateTime = function(date = new Date()) {
     const month = date.getMonth() + 1;
     const day = date.getDate();
     const hours = date.getHours();
     const minutes = date.getMinutes().toString().padStart(2, '0');
     return `${month}/${day} ${hours}:${minutes}`;
-}
+};
 
 // 显示通知
-export function showNotification(message, type = 'info') {
+utils.showNotification = function(message, type = 'info') {
     // 创建通知元素
     const notification = document.createElement('div');
     notification.className = `notification notification-${type}`;
@@ -72,10 +75,10 @@ export function showNotification(message, type = 'info') {
             notification.remove();
         }, 300);
     }, 3000);
-}
+};
 
 // 防抖函数
-export function debounce(func, wait) {
+utils.debounce = function(func, wait) {
     let timeout;
     return function executedFunction(...args) {
         const later = () => {
@@ -85,10 +88,10 @@ export function debounce(func, wait) {
         clearTimeout(timeout);
         timeout = setTimeout(later, wait);
     };
-}
+};
 
 // 节流函数
-export function throttle(func, limit) {
+utils.throttle = function(func, limit) {
     let inThrottle;
     return function(...args) {
         if (!inThrottle) {
@@ -97,10 +100,10 @@ export function throttle(func, limit) {
             setTimeout(() => inThrottle = false, limit);
         }
     };
-}
+};
 
 // 读取文件内容
-export async function readFileContent(file) {
+utils.readFileContent = function(file) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = (event) => resolve(event.target.result);
@@ -119,11 +122,11 @@ export async function readFileContent(file) {
             reject(new Error('不支持的文件类型'));
         }
     });
-}
+};
 
 // 解析CSV文件
-export function parseCSV(csvText) {
-    const lines = csvText.split('\n');
+utils.parseCSV = function(text) {
+    const lines = text.split('\n');
     const headers = lines[0].split(',').map(header => header.trim());
     const data = [];
     
@@ -144,10 +147,10 @@ export function parseCSV(csvText) {
         headers,
         data
     };
-}
+};
 
-// 提取文本摘要（用于知识库）
-export function extractTextSummary(text, maxLength = 200) {
+// 提取文本摘要
+utils.extractTextSummary = function(text, maxLength = 200) {
     // 移除多余的空白字符
     const cleanedText = text.replace(/\s+/g, ' ').trim();
     
@@ -167,16 +170,16 @@ export function extractTextSummary(text, maxLength = 200) {
                   (lastSpaceIndex > 0 ? lastSpaceIndex : maxLength));
     
     return truncated.substring(0, cutIndex).trim() + '...';
-}
+};
 
 // 验证文件大小
-export function validateFileSize(file, maxSizeMB = 10) {
+utils.validateFileSize = function(file, maxSizeMB = 5) {
     const maxSizeBytes = maxSizeMB * 1024 * 1024;
     return file.size <= maxSizeBytes;
-}
+};
 
 // 支持的文件类型
-export const SUPPORTED_FILE_TYPES = [
+utils.SUPPORTED_FILE_TYPES = [
     { type: 'text/plain', extension: '.txt', name: '文本文件' },
     { type: 'application/json', extension: '.json', name: 'JSON文件' },
     { type: 'text/csv', extension: '.csv', name: 'CSV文件' },
@@ -185,12 +188,12 @@ export const SUPPORTED_FILE_TYPES = [
 ];
 
 // 随机生成唯一ID
-export function generateId() {
+utils.generateId = function() {
     return Math.random().toString(36).substr(2, 9);
-}
+};
 
 // 复制到剪贴板
-export async function copyTextToClipboard(text) {
+utils.copyTextToClipboard = async function(text) {
     try {
         await navigator.clipboard.writeText(text);
         return true;
@@ -216,4 +219,7 @@ export async function copyTextToClipboard(text) {
             return false;
         }
     }
-}
+};
+
+// 支持的文件类型和其他常量已在上面定义为utils对象的属性
+// generateId和copyTextToClipboard函数也已在上面定义

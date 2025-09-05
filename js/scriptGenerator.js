@@ -3,11 +3,12 @@
  * 负责处理脚本生成的核心逻辑
  */
 
-import { showNotification } from './utils.js';
-import { statsManager, recentRecordsManager } from './storage.js';
+// 将脚本生成器挂载到全局对象
+const scriptGenerator = window.scriptGenerator = window.scriptGenerator || {};
+
 
 // AI模型列表
-const AVAILABLE_MODELS = [
+scriptGenerator.AVAILABLE_MODELS = [
     { id: 'gpt-3.5', name: 'GPT-3.5 Turbo', description: '平衡性能和成本的通用模型', params: ['temperature', 'max_tokens'] },
     { id: 'gpt-4', name: 'GPT-4', description: '更强大的模型，提供更高质量的结果', params: ['temperature', 'max_tokens'] },
     { id: 'gpt-4o', name: 'GPT-4o', description: '最新多模态模型，支持文本和图像', params: ['temperature', 'max_tokens'] },
@@ -20,7 +21,7 @@ const AVAILABLE_MODELS = [
 ];
 
 // 可用的对话风格
-const AVAILABLE_STYLES = [
+scriptGenerator.AVAILABLE_STYLES = [
     { id: 'professional', name: '专业', description: '正式、专业的对话风格' },
     { id: 'friendly', name: '友好', description: '亲切、友好的对话风格' },
     { id: 'casual', name: '随意', description: '轻松、随意的对话风格' },
@@ -29,7 +30,7 @@ const AVAILABLE_STYLES = [
 ];
 
 // 可用的脚本长度
-const AVAILABLE_LENGTHS = [
+scriptGenerator.AVAILABLE_LENGTHS = [
     { value: 3, label: '短 (约3轮)' },
     { value: 5, label: '中 (约5轮)' },
     { value: 8, label: '长 (约8轮)' },
@@ -37,7 +38,7 @@ const AVAILABLE_LENGTHS = [
 ];
 
 // 生成对话脚本的核心函数
-export async function generateScript(prompt, options = {}) {
+scriptGenerator.generateScript = async function(prompt, options = {}) {
     const { model = 'gpt-3.5', style = 'professional', length = 5, language = 'zh', contextHistory = [], characterRole = '客服-用户', knowledgeBaseItems = [] } = options;
     
     try {
@@ -88,15 +89,15 @@ export async function generateScript(prompt, options = {}) {
 }
 
 // 模拟API调用（在实际项目中替换为真实API调用）
-async function simulateApiCall(prompt, options) {
-    const { model, style, length, language, contextHistory, characterRole } = options;
+scriptGenerator.simulateApiCall = async function(prompt, options) {
+    const { model, style, length, language, contextHistory, characterRole, knowledgeBaseItems = [], knowledgeWeight = 0.5 } = options;
     
     // 模拟网络延迟
     await new Promise(resolve => setTimeout(resolve, 1500 + Math.random() * 1000));
     
     // 根据参数生成模拟的对话脚本
-    const stylePrefix = getStylePrefix(style);
-    const modelPrefix = getModelPrefix(model);
+    const stylePrefix = scriptGenerator.getStylePrefix(style);
+    const modelPrefix = scriptGenerator.getModelPrefix(model);
     
     let script = `# ${modelPrefix}${stylePrefix}对话脚本\n\n`;
     script += `角色: ${characterRole}\n\n`;
@@ -112,22 +113,31 @@ async function simulateApiCall(prompt, options) {
     
     // 生成对话轮次
     for (let i = 1; i <= length; i++) {
-        const { userRole, aiRole } = getRoleNames(characterRole);
+        const { userRole, aiRole } = scriptGenerator.getRoleNames(characterRole);
         
         script += `## 第${i}轮对话\n\n`;
-        script += `**${userRole}**: ${generateUserMessage(prompt, i, length, style, contextHistory, characterRole)}\n\n`;
-        script += `**${aiRole}**: ${generateAIMessage(prompt, i, length, style, contextHistory, characterRole, knowledgeBaseItems)}\n\n`;
+        script += `**${userRole}**: ${scriptGenerator.generateUserMessage(prompt, i, length, style, contextHistory, characterRole)}\n\n`;
+        script += `**${aiRole}**: ${scriptGenerator.generateAIMessage(prompt, i, length, style, contextHistory, characterRole, knowledgeBaseItems, knowledgeWeight)}\n\n`;
     }
     
     script += `---\n\n生成于: ${new Date().toLocaleString()}\n`;
-    script += `模型: ${AVAILABLE_MODELS.find(m => m.id === model)?.name || model}\n`;
-    script += `风格: ${AVAILABLE_STYLES.find(s => s.id === style)?.name || style}`;
+    script += `模型: ${scriptGenerator.AVAILABLE_MODELS.find(m => m.id === model)?.name || model}\n`;
+    script += `风格: ${scriptGenerator.AVAILABLE_STYLES.find(s => s.id === style)?.name || style}`;
     
-    return script;
+    // 返回生成结果和是否使用了知识库内容的标志
+    let usedKnowledgeBase = false;
+    if (knowledgeBaseItems && knowledgeBaseItems.length > 0 && Math.random() < knowledgeWeight) {
+        usedKnowledgeBase = true;
+    }
+    
+    return {
+        script: script,
+        usedKnowledgeBase: usedKnowledgeBase
+    };
 }
 
 // 根据角色类型获取角色名称
-function getRoleNames(characterRole) {
+scriptGenerator.getRoleNames = function(characterRole) {
     const roleMap = {
         '客服-用户': { userRole: '用户', aiRole: '客服' },
         '老师-学生': { userRole: '学生', aiRole: '老师' },
@@ -141,7 +151,7 @@ function getRoleNames(characterRole) {
 }
 
 // 获取风格前缀
-function getStylePrefix(style) {
+scriptGenerator.getStylePrefix = function(style) {
     const prefixes = {
         'professional': '【专业】',
         'friendly': '【友好】',
@@ -153,7 +163,7 @@ function getStylePrefix(style) {
 }
 
 // 获取模型前缀
-function getModelPrefix(model) {
+scriptGenerator.getModelPrefix = function(model) {
     const prefixes = {
         'gpt-3.5': '[GPT-3.5] ',
         'gpt-4': '[GPT-4] ',
@@ -164,7 +174,7 @@ function getModelPrefix(model) {
 }
 
 // 生成用户消息
-function generateUserMessage(prompt, round, totalRounds, style, contextHistory = [], characterRole = '客服-用户') {
+scriptGenerator.generateUserMessage = function(prompt, round, totalRounds, style, contextHistory = [], characterRole = '客服-用户') {
     // 根据角色选择适合的消息模板
     const roleTemplates = {
         '客服-用户': {
@@ -195,7 +205,7 @@ function generateUserMessage(prompt, round, totalRounds, style, contextHistory =
                 `您能帮我梳理一下${prompt}的核心概念吗？`
             ],
             middle: [
-                `那${prompt}和之前学的${getRelatedConcept(prompt)}有什么联系吗？`,
+                `那${prompt}和之前学的${scriptGenerator.getRelatedConcept(prompt)}有什么联系吗？`,
                 `如果遇到${prompt}相关的问题，应该从哪些方面思考？`,
                 `您能举几个关于${prompt}的实际例子吗？`,
                 `学习${prompt}有没有什么有效的方法或技巧？`
@@ -272,7 +282,7 @@ function generateUserMessage(prompt, round, totalRounds, style, contextHistory =
 }
 
 // 生成AI消息 - 集成知识库内容
-function generateAIMessage(prompt, round, totalRounds, style, contextHistory = [], characterRole = '客服-用户', knowledgeBaseItems = []) {
+scriptGenerator.generateAIMessage = function(prompt, round, totalRounds, style, contextHistory = [], characterRole = '客服-用户', knowledgeBaseItems = [], knowledgeWeight = 0.5) {
     // 根据角色和风格选择适合的响应模板
     const roleStyleResponses = {
         '客服-用户': {
@@ -322,25 +332,49 @@ function generateAIMessage(prompt, round, totalRounds, style, contextHistory = [
         `\n\n为了更好地理解${prompt}，建议您结合实际案例进行学习和应用。`
     ];
 
-    // 如果有相关的知识库内容，将其融入回复中
+    // 如果有相关的知识库内容，根据权重决定是否集成到回复中
     let knowledgeIntegration = '';
-    if (knowledgeBaseItems && knowledgeBaseItems.length > 0) {
-        // 选择最合适的知识库内容（简单实现：选择第一个相关的或者随机选择）
-        const relevantKnowledge = knowledgeBaseItems[Math.floor(Math.random() * knowledgeBaseItems.length)];
-        if (relevantKnowledge && relevantKnowledge.content) {
-            // 提取知识摘要并集成到回复中
-            const knowledgeSummary = extractKnowledgeSummary(relevantKnowledge.content);
-            if (knowledgeSummary) {
-                const integrationFormats = [
-                    `\n\n根据我们的知识库信息，${knowledgeSummary}`,
-                    `\n\n值得注意的是，${knowledgeSummary}`,
-                    `\n\n另外，我们的资料显示${knowledgeSummary}`,
-                    `\n\n补充一点，${knowledgeSummary}`
-                ];
-                knowledgeIntegration = integrationFormats[Math.floor(Math.random() * integrationFormats.length)];
+    let usedKnowledge = false;
+    
+    if (knowledgeBaseItems && knowledgeBaseItems.length > 0 && Math.random() < knowledgeWeight) {
+        // 根据权重选择使用的知识库内容数量
+        const knowledgeCount = Math.max(1, Math.floor(knowledgeBaseItems.length * knowledgeWeight));
+        const selectedItems = [];
+        
+        // 随机选择内容，但避免重复
+        while (selectedItems.length < knowledgeCount && selectedItems.length < knowledgeBaseItems.length) {
+            const randomIndex = Math.floor(Math.random() * knowledgeBaseItems.length);
+            if (!selectedItems.includes(knowledgeBaseItems[randomIndex])) {
+                selectedItems.push(knowledgeBaseItems[randomIndex]);
             }
         }
+        
+        // 提取知识摘要并集成到回复中
+        selectedItems.forEach((item, index) => {
+            if (item && item.content) {
+                const knowledgeSummary = scriptGenerator.extractKnowledgeSummary(item.content);
+                if (knowledgeSummary) {
+                    const integrationFormats = [
+                        `\n\n根据我们的知识库信息，${knowledgeSummary}`,
+                        `\n\n值得注意的是，${knowledgeSummary}`,
+                        `\n\n另外，我们的资料显示${knowledgeSummary}`,
+                        `\n\n补充一点，${knowledgeSummary}`
+                    ];
+                    
+                    // 权重越高，使用的集成格式越靠前（更直接引用知识库）
+                    const formatIndex = knowledgeWeight > 0.7 ? 0 : 
+                                      (knowledgeWeight > 0.4 ? Math.floor(Math.random() * 2) : 
+                                      Math.floor(Math.random() * integrationFormats.length));
+                    
+                    knowledgeIntegration += integrationFormats[formatIndex];
+                    usedKnowledge = true;
+                }
+            }
+        });
     }
+    
+    // 保存是否使用了知识库的标志，用于统计
+    scriptGenerator.lastUsedKnowledge = usedKnowledge;
     
     // 如果有上下文历史，可以基于历史内容生成更连贯的回答
     let contextualResponse = baseResponse;
@@ -352,7 +386,7 @@ function generateAIMessage(prompt, round, totalRounds, style, contextHistory = [
         );
         
         if (lastUserMessage) {
-            contextualResponse = adaptResponseToContext(baseResponse, prompt, lastUserMessage.content);
+            contextualResponse = scriptGenerator.adaptResponseToContext(baseResponse, prompt, lastUserMessage.content);
         }
     }
     
@@ -371,13 +405,13 @@ function generateAIMessage(prompt, round, totalRounds, style, contextHistory = [
 }
 
 // 辅助函数：生成相关概念
-function getRelatedConcept(prompt) {
+scriptGenerator.getRelatedConcept = function(prompt) {
     const concepts = ['基础理论', '实践应用', '案例分析', '方法论', '前沿研究', '经典模型'];
     return concepts[Math.floor(Math.random() * concepts.length)];
 }
 
 // 辅助函数：基于上下文生成跟进问题
-function generateFollowUpQuestion(prompt, lastMessage, middleTemplates) {
+scriptGenerator.generateFollowUpQuestion = function(prompt, lastMessage, middleTemplates) {
     // 简单的关键词匹配来生成相关问题
     if (lastMessage.includes('流程')) {
         return `那在${prompt}的流程中，有没有什么需要特别注意的环节？`;
@@ -394,7 +428,7 @@ function generateFollowUpQuestion(prompt, lastMessage, middleTemplates) {
 }
 
 // 辅助函数：根据上下文调整响应
-function adaptResponseToContext(baseResponse, prompt, userMessage) {
+scriptGenerator.adaptResponseToContext = function(baseResponse, prompt, userMessage) {
     // 简单的调整逻辑，实际应用中可以更复杂
     let adaptedResponse = baseResponse;
 
@@ -410,7 +444,7 @@ function adaptResponseToContext(baseResponse, prompt, userMessage) {
 }
 
 // 辅助函数：从知识库内容中提取摘要
-function extractKnowledgeSummary(content) {
+scriptGenerator.extractKnowledgeSummary = function(content) {
     // 简单的摘要提取逻辑，实际应用中可以使用更复杂的NLP技术
     // 截取前100个字符作为摘要，确保句子完整
     if (!content || typeof content !== 'string') {
@@ -432,6 +466,3 @@ function extractKnowledgeSummary(content) {
     
     return summary;
 }
-
-// 工具函数导出
-export { AVAILABLE_MODELS, AVAILABLE_STYLES, AVAILABLE_LENGTHS };

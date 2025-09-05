@@ -3,15 +3,20 @@
  * 处理用户数据的本地存储和读取
  */
 
-const STORAGE_KEYS = {
+// 将存储管理挂载到全局对象
+const storage = window.storage = window.storage || {};
+
+// 存储键名定义
+storage.STORAGE_KEYS = {
     RECENT_RECORDS: 'script_generator_recent_records',
     STATS: 'script_generator_stats',
     SETTINGS: 'script_generator_settings',
-    DRAFTS: 'script_generator_drafts'
+    DRAFTS: 'script_generator_drafts',
+    KNOWLEDGE_BASE: 'script_generator_knowledge_base'
 };
 
 // 默认设置
-const DEFAULT_SETTINGS = {
+storage.DEFAULT_SETTINGS = {
     selectedModel: 'GPT-3.5 Turbo',
     selectedStyle: 'professional',
     selectedRole: 'customer_service',
@@ -21,7 +26,7 @@ const DEFAULT_SETTINGS = {
 };
 
 // 获取本地存储中的数据
-export function getFromStorage(key, defaultValue = null) {
+storage.getFromStorage = function(key, defaultValue = null) {
     try {
         const item = localStorage.getItem(key);
         return item ? JSON.parse(item) : defaultValue;
@@ -29,10 +34,10 @@ export function getFromStorage(key, defaultValue = null) {
         console.error(`从本地存储获取数据失败 (${key}):`, error);
         return defaultValue;
     }
-}
+};
 
 // 保存数据到本地存储
-export function saveToStorage(key, value) {
+storage.saveToStorage = function(key, value) {
     try {
         localStorage.setItem(key, JSON.stringify(value));
         return true;
@@ -40,10 +45,10 @@ export function saveToStorage(key, value) {
         console.error(`保存数据到本地存储失败 (${key}):`, error);
         return false;
     }
-}
+};
 
 // 从本地存储中删除数据
-export function removeFromStorage(key) {
+storage.removeFromStorage = function(key) {
     try {
         localStorage.removeItem(key);
         return true;
@@ -51,10 +56,10 @@ export function removeFromStorage(key) {
         console.error(`从本地存储删除数据失败 (${key}):`, error);
         return false;
     }
-}
+};
 
 // 清除所有本地存储数据
-export function clearStorage() {
+storage.clearStorage = function() {
     try {
         localStorage.clear();
         return true;
@@ -62,12 +67,12 @@ export function clearStorage() {
         console.error('清除本地存储失败:', error);
         return false;
     }
-}
+};
 
 // 管理最近记录
-export const recentRecordsManager = {
+storage.recentRecordsManager = {
     get: function() {
-        return getFromStorage(STORAGE_KEYS.RECENT_RECORDS, []);
+        return storage.getFromStorage(storage.STORAGE_KEYS.RECENT_RECORDS, []);
     },
     add: function(record) {
         const records = this.get();
@@ -78,6 +83,9 @@ export const recentRecordsManager = {
             content: record.content || '',
             model: record.model,
             style: record.style,
+            characterRole: record.characterRole,
+            knowledgeUsed: record.knowledgeUsed || false,
+            knowledgeItems: record.knowledgeItems || [],
             timestamp: new Date().toISOString()
         };
         // 添加到列表开头
@@ -86,29 +94,31 @@ export const recentRecordsManager = {
         if (records.length > 20) {
             records.splice(20);
         }
-        return saveToStorage(STORAGE_KEYS.RECENT_RECORDS, records);
+        return storage.saveToStorage(storage.STORAGE_KEYS.RECENT_RECORDS, records);
     },
     remove: function(id) {
         const records = this.get();
         const filteredRecords = records.filter(record => record.id !== id);
-        return saveToStorage(STORAGE_KEYS.RECENT_RECORDS, filteredRecords);
+        return storage.saveToStorage(storage.STORAGE_KEYS.RECENT_RECORDS, filteredRecords);
     },
     clear: function() {
-        return removeFromStorage(STORAGE_KEYS.RECENT_RECORDS);
+        return storage.removeFromStorage(storage.STORAGE_KEYS.RECENT_RECORDS);
     }
 };
 
 // 管理统计数据
-export const statsManager = {
+storage.statsManager = {
     get: function() {
-        return getFromStorage(STORAGE_KEYS.STATS, {
+        return storage.getFromStorage(storage.STORAGE_KEYS.STATS, {
             totalScripts: 0,
             averageTime: 0,
             successRate: 0,
+            knowledgeUtilization: 0,
+            knowledgeUsedCount: 0,
             lastUpdated: null
         });
     },
-    update: function(generationTime) {
+    update: function(generationTime, knowledgeUsed = false) {
         const stats = this.get();
         stats.totalScripts += 1;
         
@@ -121,34 +131,46 @@ export const statsManager = {
         
         // 模拟成功率（假设总是成功）
         stats.successRate = Math.min(99.9, stats.successRate + (Math.random() * 0.5) + 0.1);
+        
+        // 更新知识库利用率统计
+        if (knowledgeUsed) {
+            stats.knowledgeUsedCount += 1;
+        }
+        stats.knowledgeUtilization = stats.totalScripts > 0 ? 
+            (stats.knowledgeUsedCount / stats.totalScripts) * 100 : 0;
+        
         stats.lastUpdated = new Date().toISOString();
         
-        return saveToStorage(STORAGE_KEYS.STATS, stats);
+        return storage.saveToStorage(storage.STORAGE_KEYS.STATS, stats);
     },
     reset: function() {
-        return removeFromStorage(STORAGE_KEYS.STATS);
+        return storage.removeFromStorage(storage.STORAGE_KEYS.STATS);
+    },
+    // 更新单个生成的统计信息
+    updateWithNewGeneration: function(generationTime, knowledgeUsed = false) {
+        return this.update(generationTime, knowledgeUsed);
     }
 };
 
 // 管理用户设置
-export const settingsManager = {
+storage.settingsManager = {
     get: function() {
-        return {...DEFAULT_SETTINGS, ...getFromStorage(STORAGE_KEYS.SETTINGS, {})};
+        return {...storage.DEFAULT_SETTINGS, ...storage.getFromStorage(storage.STORAGE_KEYS.SETTINGS, {})};
     },
     save: function(settings) {
         const currentSettings = this.get();
         const newSettings = {...currentSettings, ...settings};
-        return saveToStorage(STORAGE_KEYS.SETTINGS, newSettings);
+        return storage.saveToStorage(storage.STORAGE_KEYS.SETTINGS, newSettings);
     },
     reset: function() {
-        return removeFromStorage(STORAGE_KEYS.SETTINGS);
+        return storage.removeFromStorage(storage.STORAGE_KEYS.SETTINGS);
     }
 };
 
 // 管理草稿
-export const draftsManager = {
+storage.draftsManager = {
     get: function() {
-        return getFromStorage(STORAGE_KEYS.DRAFTS, []);
+        return storage.getFromStorage(storage.STORAGE_KEYS.DRAFTS, []);
     },
     add: function(draft) {
         const drafts = this.get();
@@ -163,34 +185,31 @@ export const draftsManager = {
         if (drafts.length > 10) {
             drafts.splice(10);
         }
-        return saveToStorage(STORAGE_KEYS.DRAFTS, drafts);
+        return storage.saveToStorage(storage.STORAGE_KEYS.DRAFTS, drafts);
     },
     update: function(id, updates) {
         const drafts = this.get();
         const draftIndex = drafts.findIndex(draft => draft.id === id);
         if (draftIndex !== -1) {
             drafts[draftIndex] = {...drafts[draftIndex], ...updates, timestamp: new Date().toISOString()};
-            return saveToStorage(STORAGE_KEYS.DRAFTS, drafts);
+            return storage.saveToStorage(storage.STORAGE_KEYS.DRAFTS, drafts);
         }
         return false;
     },
     remove: function(id) {
         const drafts = this.get();
         const filteredDrafts = drafts.filter(draft => draft.id !== id);
-        return saveToStorage(STORAGE_KEYS.DRAFTS, filteredDrafts);
+        return storage.saveToStorage(storage.STORAGE_KEYS.DRAFTS, filteredDrafts);
     },
     clear: function() {
-        return removeFromStorage(STORAGE_KEYS.DRAFTS);
+        return storage.removeFromStorage(storage.STORAGE_KEYS.DRAFTS);
     }
 };
 
-// 添加知识库存储键
-STORAGE_KEYS.KNOWLEDGE_BASE = 'script_generator_knowledge_base';
-
 // 管理知识库
-export const knowledgeBaseManager = {
+storage.knowledgeBaseManager = {
     get: function() {
-        return getFromStorage(STORAGE_KEYS.KNOWLEDGE_BASE, []);
+        return storage.getFromStorage(storage.STORAGE_KEYS.KNOWLEDGE_BASE, []);
     },
     add: function(item) {
         const items = this.get();
@@ -204,21 +223,21 @@ export const knowledgeBaseManager = {
             timestamp: new Date().toISOString()
         };
         items.push(newItem);
-        return saveToStorage(STORAGE_KEYS.KNOWLEDGE_BASE, items);
+        return storage.saveToStorage(storage.STORAGE_KEYS.KNOWLEDGE_BASE, items);
     },
     update: function(id, updates) {
         const items = this.get();
         const itemIndex = items.findIndex(item => item.id === id);
         if (itemIndex !== -1) {
             items[itemIndex] = {...items[itemIndex], ...updates, timestamp: new Date().toISOString()};
-            return saveToStorage(STORAGE_KEYS.KNOWLEDGE_BASE, items);
+            return storage.saveToStorage(storage.STORAGE_KEYS.KNOWLEDGE_BASE, items);
         }
         return false;
     },
     remove: function(id) {
         const items = this.get();
         const filteredItems = items.filter(item => item.id !== id);
-        return saveToStorage(STORAGE_KEYS.KNOWLEDGE_BASE, filteredItems);
+        return storage.saveToStorage(storage.STORAGE_KEYS.KNOWLEDGE_BASE, filteredItems);
     },
     search: function(query) {
         if (!query || query.trim() === '') {
@@ -235,6 +254,6 @@ export const knowledgeBaseManager = {
         );
     },
     clear: function() {
-        return removeFromStorage(STORAGE_KEYS.KNOWLEDGE_BASE);
+        return storage.removeFromStorage(storage.STORAGE_KEYS.KNOWLEDGE_BASE);
     }
 };

@@ -6,6 +6,7 @@
     <meta name="description" content="话术工具 - 智能对话脚本生成系统，支持多种AI模型、对话风格和知识库增强功能，适用于客服、销售、教育等多种场景。">
     <title>话术工具 - 智能对话脚本生成系统</title>
     <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/knowledge-integration.css">
 </head>
 <body>
     <!-- 导航栏 -->
@@ -324,7 +325,12 @@
         </aside>
     </div>
 
-    <script type="module" src="js/main.js"></script>
+    <!-- 按照正确顺序加载所有JavaScript文件 -->
+    <script src="js/utils.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/scriptGenerator.js"></script>
+    <script src="js/knowledgeBase.js"></script>
+    <script src="js/main.js"></script>
     
     <!-- 知识库管理模块 -->
     <div class="knowledge-base-container">

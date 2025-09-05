@@ -3,10 +3,24 @@
  * 整合所有功能模块，处理DOM交互和页面初始化
  */
 
-import { getElement, getElements, showNotification, copyTextToClipboard, formatDateTime, debounce } from './utils.js';
-import { recentRecordsManager, statsManager, settingsManager, draftsManager } from './storage.js';
-import { generateScript, AVAILABLE_MODELS, AVAILABLE_STYLES, AVAILABLE_LENGTHS } from './scriptGenerator.js';
-import { initKnowledgeBase, retrieveKnowledge } from './knowledgeBase.js';
+// 从全局对象中获取所需功能
+const { getElement, getElements, copyTextToClipboard, formatDateTime, debounce } = utils;
+const { recentRecordsManager, statsManager, settingsManager, draftsManager } = storage;
+const { generateScript, AVAILABLE_MODELS, AVAILABLE_STYLES, AVAILABLE_LENGTHS } = scriptGenerator;
+const { initKnowledgeBase, retrieveKnowledge } = knowledgeBase;
+
+// 全局调试函数
+window.debugApp = function() {
+    console.log('=== 应用调试信息 ===');
+    console.log('DOM元素状态:', {
+        generateButton: !!elements.generateButton,
+        inputTextarea: !!elements.inputTextarea,
+        outputTextarea: !!elements.outputTextarea,
+        copyButton: !!elements.copyButton,
+        editButton: !!elements.editButton,
+    });
+    console.log('=== 调试结束 ===');
+};
 
 // DOM元素缓存
 const elements = {
@@ -20,6 +34,7 @@ const elements = {
     settingsPanel: null,
     selectedModel: null,
     selectedStyle: null,
+    selectedRole: null,
     selectedLength: null,
     clearRecordsButton: null,
     clearDraftsButton: null
@@ -37,6 +52,12 @@ async function initApp() {
         // 初始化设置
         initSettings();
         
+        // 添加知识库权重配置UI
+        addKnowledgeWeightControl();
+        
+        // 添加历史记录筛选UI
+        addRecordFilterUI();
+        
         // 加载最近记录
         loadRecentRecords();
         
@@ -50,7 +71,7 @@ async function initApp() {
         loadDraft();
         
         console.log('应用初始化成功');
-        showNotification('AI对话脚本生成器已就绪', 'info');
+        utils.showNotification('AI对话脚本生成器已就绪', 'info');
         
         // 初始化知识库功能
         await initKnowledgeBase();
@@ -59,12 +80,13 @@ async function initApp() {
         setupModalCloseEvent();
     } catch (error) {
         console.error('应用初始化失败:', error);
-        showNotification('应用初始化失败，请刷新页面重试。', 'error');
+        utils.showNotification('应用初始化失败，请刷新页面重试。', 'error');
     }
 }
 
 // 缓存DOM元素
 function cacheDOMElements() {
+    console.log('开始缓存DOM元素...');
     elements.generateButton = getElement('#generate-btn');
     elements.inputTextarea = getElement('#input-textarea');
     elements.outputTextarea = getElement('#output-textarea');
@@ -79,54 +101,92 @@ function cacheDOMElements() {
     elements.selectedLength = getElement('#length-select');
     elements.clearRecordsButton = getElement('#clear-records-btn');
     elements.clearDraftsButton = getElement('#clear-drafts-btn');
+    
+    // 调试日志
+    console.log('DOM元素缓存结果:', {
+        generateButton: !!elements.generateButton,
+        inputTextarea: !!elements.inputTextarea,
+        outputTextarea: !!elements.outputTextarea,
+        copyButton: !!elements.copyButton,
+        editButton: !!elements.editButton,
+        selectedModel: !!elements.selectedModel,
+        selectedStyle: !!elements.selectedStyle,
+        selectedRole: !!elements.selectedRole,
+        selectedLength: !!elements.selectedLength
+    });
 }
 
 // 注册事件监听器
 function registerEventListeners() {
+    console.log('开始注册事件监听器...');
+    
     if (elements.generateButton) {
-        elements.generateButton.addEventListener('click', handleGenerateClick);
+        console.log('绑定生成按钮点击事件');
+        elements.generateButton.addEventListener('click', function() {
+            console.log('生成按钮被点击');
+            handleGenerateClick();
+        });
+    } else {
+        console.error('生成按钮元素未找到');
     }
     
     if (elements.copyButton) {
-        elements.copyButton.addEventListener('click', handleCopyClick);
+        console.log('绑定复制按钮点击事件');
+        elements.copyButton.addEventListener('click', function() {
+            console.log('复制按钮被点击');
+            handleCopyClick();
+        });
     }
     
     if (elements.editButton) {
-        elements.editButton.addEventListener('click', handleEditClick);
+        console.log('绑定编辑按钮点击事件');
+        elements.editButton.addEventListener('click', function() {
+            console.log('编辑按钮被点击');
+            handleEditClick();
+        });
     }
     
     if (elements.clearRecordsButton) {
+        console.log('绑定清空记录按钮点击事件');
         elements.clearRecordsButton.addEventListener('click', handleClearRecords);
     }
     
     if (elements.clearDraftsButton) {
+        console.log('绑定清空草稿按钮点击事件');
         elements.clearDraftsButton.addEventListener('click', handleClearDrafts);
     }
     
     // 监听输入框变化，实现自动保存草稿
     if (elements.inputTextarea) {
+        console.log('绑定输入框输入事件');
         elements.inputTextarea.addEventListener('input', debounce(saveDraft, 1000));
     }
     
     // 监听设置变更
     if (elements.selectedModel) {
+        console.log('绑定模型选择器变更事件');
         elements.selectedModel.addEventListener('change', handleSettingsChange);
     }
     
     if (elements.selectedStyle) {
+        console.log('绑定风格选择器变更事件');
         elements.selectedStyle.addEventListener('change', handleSettingsChange);
     }
     
     if (elements.selectedRole) {
+        console.log('绑定角色选择器变更事件');
         elements.selectedRole.addEventListener('change', handleSettingsChange);
     }
     
     if (elements.selectedLength) {
+        console.log('绑定长度选择器变更事件');
         elements.selectedLength.addEventListener('change', handleSettingsChange);
     }
     
     // 监听键盘事件
     document.addEventListener('keydown', handleKeydown);
+    
+    console.log('事件监听器注册完成');
 }
 
 // 初始化设置
@@ -176,7 +236,7 @@ function handleSettingsChange() {
     };
     
     settingsManager.save(settings);
-    showNotification('设置已保存', 'success');
+    utils.showNotification('设置已保存', 'success');
 }
 
 // 处理生成按钮点击
@@ -186,7 +246,7 @@ async function handleGenerateClick() {
     const prompt = elements.inputTextarea.value.trim();
     
     if (!prompt) {
-        showNotification('请输入提示内容', 'error');
+        utils.showNotification('请输入提示内容', 'error');
         return;
     }
     
@@ -200,6 +260,10 @@ async function handleGenerateClick() {
         
         // 获取对话角色
         const characterRole = elements.selectedRole ? elements.selectedRole.value : '客服-用户';
+        
+        // 获取知识库权重
+        const knowledgeWeightElement = document.getElementById('knowledge-weight');
+        const knowledgeWeight = knowledgeWeightElement ? parseFloat(knowledgeWeightElement.value) : 0.5;
         
         // 构建上下文历史（如果当前有内容，可以作为历史）
         const contextHistory = [];
@@ -239,7 +303,7 @@ async function handleGenerateClick() {
         }
         
         // 从知识库中检索相关内容
-        showNotification('正在从知识库检索相关信息...', 'info');
+        utils.showNotification('正在从知识库检索相关信息...', 'info');
         const relevantKnowledge = retrieveKnowledge(prompt);
         
         // 记录开始时间
@@ -250,7 +314,8 @@ async function handleGenerateClick() {
             ...settings,
             contextHistory,
             characterRole,
-            relevantKnowledge
+            knowledgeBaseItems: relevantKnowledge,
+            knowledgeWeight: knowledgeWeight
         });
         
         // 计算生成时间
@@ -260,8 +325,23 @@ async function handleGenerateClick() {
             // 显示生成结果
             elements.outputTextarea.value = result.content;
             
-            // 更新统计信息，包括本次生成时间
-            updateStats({ generationTime });
+            // 记录是否使用了知识库
+            const usedKnowledgeBase = result.usedKnowledgeBase || false;
+            
+            // 更新统计信息，包括本次生成时间和知识库使用情况
+            updateStats({ generationTime, knowledgeUsed: usedKnowledgeBase });
+            
+            // 保存到最近记录（包含知识库关联信息）
+            const title = prompt.length > 50 ? prompt.substring(0, 50) + '...' : prompt;
+            recentRecordsManager.add({
+                title,
+                content: result.content,
+                model: settings.selectedModel,
+                style: settings.selectedStyle,
+                characterRole: characterRole,
+                knowledgeUsed: usedKnowledgeBase,
+                knowledgeItems: relevantKnowledge.map(item => ({id: item.id, title: item.title}))
+            });
             
             // 重新加载最近记录
             loadRecentRecords();
@@ -270,14 +350,14 @@ async function handleGenerateClick() {
             draftsManager.clear();
             
             // 显示成功通知
-            showNotification('脚本生成成功！', 'success');
+            utils.showNotification('脚本生成成功！' + (usedKnowledgeBase ? ' 已使用知识库内容。' : ''), 'success');
         } else {
             // 显示错误信息
-            showNotification(result.message || '生成失败，请稍后重试。', 'error');
+            utils.showNotification(result.message || '生成失败，请稍后重试。', 'error');
         }
     } catch (error) {
         console.error('生成过程中发生错误:', error);
-        showNotification('生成失败，请稍后重试。', 'error');
+        utils.showNotification('生成失败，请稍后重试。', 'error');
     } finally {
         // 恢复按钮状态
         elements.generateButton.disabled = false;
@@ -292,7 +372,7 @@ async function handleCopyClick() {
     const textToCopy = elements.outputTextarea.value.trim();
     
     if (!textToCopy) {
-        showNotification('没有内容可复制', 'error');
+        utils.showNotification('没有内容可复制', 'error');
         return;
     }
     
@@ -300,13 +380,13 @@ async function handleCopyClick() {
         const success = await copyTextToClipboard(textToCopy);
         
         if (success) {
-            showNotification('已复制到剪贴板', 'success');
+            utils.showNotification('已复制到剪贴板', 'success');
         } else {
-            showNotification('复制失败，请手动复制', 'error');
+            utils.showNotification('复制失败，请手动复制', 'error');
         }
     } catch (error) {
         console.error('复制失败:', error);
-        showNotification('复制失败，请手动复制', 'error');
+        utils.showNotification('复制失败，请手动复制', 'error');
     }
 }
 
@@ -338,7 +418,7 @@ function handleEditClick() {
     const outputText = elements.outputTextarea.value.trim();
     
     if (!outputText) {
-        showNotification('没有内容可编辑', 'error');
+        utils.showNotification('没有内容可编辑', 'error');
         return;
     }
     
@@ -352,7 +432,7 @@ function handleEditClick() {
     elements.inputTextarea.scrollIntoView({ behavior: 'smooth', block: 'center' });
     elements.inputTextarea.focus();
     
-    showNotification('已准备好编辑内容', 'info');
+    utils.showNotification('已准备好编辑内容', 'info');
 }
 
 // 加载最近记录
@@ -377,7 +457,7 @@ function loadRecentRecords() {
     recordsList.className = 'records-list';
     
     records.forEach(record => {
-        const recordItem = createRecordItem(record);
+        const recordItem = createRecordItemWithKnowledgeFlag(record);
         recordsList.appendChild(recordItem);
     });
     
@@ -475,13 +555,13 @@ function loadRecord(recordId) {
             // 滚动到输出区域
             elements.outputTextarea.scrollIntoView({ behavior: 'smooth', block: 'center' });
             
-            showNotification('记录已加载', 'success');
+            utils.showNotification('记录已加载', 'success');
         } else {
-            showNotification('记录加载失败', 'error');
+            utils.showNotification('记录加载失败', 'error');
         }
     } catch (error) {
         console.error('加载记录时发生错误:', error);
-        showNotification('记录加载失败', 'error');
+        utils.showNotification('记录加载失败', 'error');
     }
 }
 
@@ -492,9 +572,9 @@ function deleteRecord(recordId) {
         
         if (success) {
             loadRecentRecords();
-            showNotification('记录已删除', 'success');
+            utils.showNotification('记录已删除', 'success');
         } else {
-            showNotification('记录删除失败', 'error');
+            utils.showNotification('记录删除失败', 'error');
         }
     }
 }
@@ -506,9 +586,9 @@ function handleClearRecords() {
         
         if (success) {
             loadRecentRecords();
-            showNotification('所有记录已清空', 'success');
+            utils.showNotification('所有记录已清空', 'success');
         } else {
-            showNotification('清空记录失败', 'error');
+            utils.showNotification('清空记录失败', 'error');
         }
     }
 }
@@ -518,10 +598,10 @@ function handleClearDrafts() {
     if (confirm('确定要清空所有草稿吗？此操作不可恢复。')) {
         try {
             draftsManager.clear();
-            showNotification('所有草稿已清空', 'success');
+            utils.showNotification('所有草稿已清空', 'success');
         } catch (error) {
             console.error('清空草稿时发生错误:', error);
-            showNotification('清空草稿失败', 'error');
+            utils.showNotification('清空草稿失败', 'error');
         }
     }
 }
@@ -533,20 +613,27 @@ function updateStats(options = {}) {
     try {
         let stats = statsManager.get();
         
-        // 如果提供了新的生成时间，更新统计
+        // 如果提供了新的生成时间和知识库使用情况，更新统计
         if (options.generationTime !== undefined) {
-            stats = statsManager.updateWithNewGeneration(options.generationTime);
+            stats = statsManager.updateWithNewGeneration(options.generationTime, options.knowledgeUsed);
         }
         
-        // 确保有足够的元素
-        if (elements.statValues.length >= 4) {
+        // 确保有足够的元素显示所有统计数据
+        if (elements.statValues.length >= 5) {
             elements.statValues[0].textContent = stats.totalScripts || 0;
             elements.statValues[1].textContent = (stats.averageTime || 0).toFixed(1) + 's';
             elements.statValues[2].textContent = (stats.successRate || 0).toFixed(1) + '%';
+            elements.statValues[3].textContent = (stats.knowledgeUtilization || 0).toFixed(1) + '%';
             
             // 获取实际草稿数量
             const drafts = draftsManager.get();
-            elements.statValues[3].textContent = drafts.length || 0;
+            elements.statValues[4].textContent = drafts.length || 0;
+        } else if (elements.statValues.length >= 4) {
+            // 如果只有4个统计项，用知识库利用率替换草稿数
+            elements.statValues[0].textContent = stats.totalScripts || 0;
+            elements.statValues[1].textContent = (stats.averageTime || 0).toFixed(1) + 's';
+            elements.statValues[2].textContent = (stats.successRate || 0).toFixed(1) + '%';
+            elements.statValues[3].textContent = (stats.knowledgeUtilization || 0).toFixed(1) + '%';
         }
     } catch (error) {
         console.error('更新统计信息时发生错误:', error);
@@ -593,12 +680,12 @@ function copyRecord(recordId) {
             const success = copyTextToClipboard(record.content || '');
             
             if (success) {
-                showNotification('记录内容已复制到剪贴板', 'success');
+                utils.showNotification('记录内容已复制到剪贴板', 'success');
             } else {
-                showNotification('复制失败，请手动复制', 'error');
+                utils.showNotification('复制失败，请手动复制', 'error');
             }
         } else {
-            showNotification('未找到记录', 'error');
+            utils.showNotification('未找到记录', 'error');
         }
     } catch (error) {
         console.error('复制记录时发生错误:', error);
@@ -645,3 +732,145 @@ if (document.readyState === 'loading') {
     // 如果DOM已经加载完成，直接初始化应用
     initApp();
 }
+
+// 添加知识库权重配置UI
+function addKnowledgeWeightControl() {
+    // 查找生成按钮的父容器
+    const generateButton = document.getElementById('generate-btn');
+    if (!generateButton) return;
+    
+    const container = generateButton.parentElement;
+    
+    // 创建权重控制元素
+    const weightContainer = document.createElement('div');
+    weightContainer.className = 'knowledge-weight-control';
+    weightContainer.innerHTML = `
+        <label for="knowledge-weight">知识库影响权重</label>
+        <div class="weight-slider-container">
+            <input type="range" id="knowledge-weight" min="0" max="1" step="0.1" value="0.5">
+            <span id="weight-value-display">0.5</span>
+        </div>
+        <p class="weight-hint">调整知识库内容对生成结果的影响程度，0表示不使用知识库，1表示优先使用知识库内容</p>
+    `;
+    
+    // 插入到生成按钮前面
+    container.insertBefore(weightContainer, generateButton);
+    
+    // 添加事件监听器
+    const weightSlider = document.getElementById('knowledge-weight');
+    const weightDisplay = document.getElementById('weight-value-display');
+    
+    if (weightSlider && weightDisplay) {
+        weightSlider.addEventListener('input', function() {
+            weightDisplay.textContent = this.value;
+        });
+    }
+}
+
+// 添加历史记录筛选UI
+function addRecordFilterUI() {
+    // 查找最近记录的容器
+    const recentRecordsSection = document.querySelector('.recent-records-section');
+    if (!recentRecordsSection) return;
+    
+    // 查找标题元素
+    const titleElement = recentRecordsSection.querySelector('h2, h3');
+    if (!titleElement) return;
+    
+    // 创建筛选器容器
+    const filterContainer = document.createElement('div');
+    filterContainer.className = 'record-filter-container';
+    filterContainer.innerHTML = `
+        <label for="record-filter">筛选记录：</label>
+        <select id="record-filter">
+            <option value="all">全部记录</option>
+            <option value="with">使用了知识库</option>
+            <option value="without">未使用知识库</option>
+        </select>
+    `;
+    
+    // 插入到标题后面
+    titleElement.parentNode.insertBefore(filterContainer, titleElement.nextSibling);
+    
+    // 添加事件监听器
+    const filterSelect = document.getElementById('record-filter');
+    if (filterSelect) {
+        filterSelect.addEventListener('change', function() {
+            filterRecordsByKnowledge(this.value);
+        });
+    }
+}
+
+// 按知识库关联度筛选历史记录
+function filterRecordsByKnowledge(filterType) {
+    // 获取所有记录项
+    const recordItems = document.querySelectorAll('.record-item');
+    if (!recordItems.length) return;
+    
+    // 遍历并筛选记录项
+    recordItems.forEach(item => {
+        const recordId = item.getAttribute('data-id');
+        if (!recordId) {
+            item.style.display = filterType === 'all' ? '' : 'none';
+            return;
+        }
+        
+        try {
+            // 获取记录详情
+            const records = recentRecordsManager.get();
+            const record = records.find(r => r.id === recordId);
+            
+            // 根据筛选类型决定显示或隐藏
+            if (filterType === 'all') {
+                item.style.display = '';
+            } else if (filterType === 'with' && record && record.knowledgeUsed) {
+                item.style.display = '';
+            } else if (filterType === 'without' && (!record || !record.knowledgeUsed)) {
+                item.style.display = '';
+            } else {
+                item.style.display = 'none';
+            }
+        } catch (error) {
+            console.error('筛选记录时发生错误:', error);
+            item.style.display = filterType === 'all' ? '' : 'none';
+        }
+    });
+}
+
+// 更新创建记录项函数以显示知识库使用标记
+function createRecordItemWithKnowledgeFlag(record) {
+    // 调用原始的createRecordItem函数
+    const item = createRecordItem(record);
+    
+    // 如果记录使用了知识库，添加标记
+    if (record.knowledgeUsed) {
+        const recordMeta = item.querySelector('.record-meta');
+        if (recordMeta) {
+            const knowledgeBadge = document.createElement('span');
+            knowledgeBadge.className = 'knowledge-used-badge';
+            knowledgeBadge.textContent = '使用了知识库';
+            recordMeta.appendChild(knowledgeBadge);
+        }
+    }
+    
+    // 添加data-id属性以便筛选
+    item.setAttribute('data-id', record.id);
+    
+    return item;
+}
+
+// 重写loadRecentRecords函数以使用带知识库标记的记录项
+const originalLoadRecentRecords = loadRecentRecords;
+function loadRecentRecordsWithKnowledgeFilter() {
+    // 先调用原始函数加载记录
+    originalLoadRecentRecords();
+    
+    // 再应用当前的筛选条件
+    const filterSelect = document.getElementById('record-filter');
+    if (filterSelect) {
+        filterRecordsByKnowledge(filterSelect.value);
+    }
+}
+
+// 替换原有的loadRecentRecords函数
+window.loadRecentRecords = loadRecentRecordsWithKnowledgeFilter;
