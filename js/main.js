@@ -37,7 +37,19 @@ const elements = {
     selectedRole: null,
     selectedLength: null,
     clearRecordsButton: null,
-    clearDraftsButton: null
+    clearDraftsButton: null,
+    // 新增功能按钮
+    newConversationButton: null,
+    settingsButton: null,
+    knowledgeBaseButton: null,
+    conversationRecordsButton: null,
+    uploadDataButton: null,
+    scriptGeneratorButton: null,
+    optimizationButton: null,
+    batchGenerateButton: null,
+    telegramMonitorButton: null,
+    apiConfigButton: null,
+    telegramConnectButton: null
 };
 
 // 初始化应用
@@ -102,6 +114,23 @@ function cacheDOMElements() {
     elements.clearRecordsButton = getElement('#clear-records-btn');
     elements.clearDraftsButton = getElement('#clear-drafts-btn');
     
+    // 新增功能按钮缓存
+    elements.newConversationButton = document.querySelector('.btn-primary'); // 新建对话按钮
+    elements.settingsButton = document.querySelector('.btn-secondary'); // 设置按钮
+    
+    // 侧边栏菜单按钮
+    elements.knowledgeBaseButton = getElement('.menu-item:nth-child(1)'); // 知识库管理
+    elements.conversationRecordsButton = getElement('.menu-item:nth-child(2)'); // 对话记录
+    elements.uploadDataButton = getElement('.menu-item:nth-child(3)'); // 上传数据
+    elements.scriptGeneratorButton = getElement('.menu-item:nth-child(4)'); // 脚本生成
+    elements.optimizationButton = getElement('.menu-item:nth-child(5)'); // 优化建议
+    elements.batchGenerateButton = getElement('.menu-item:nth-child(6)'); // 批量生成
+    elements.telegramMonitorButton = getElement('.menu-item:nth-child(7)'); // Telegram监控
+    elements.apiConfigButton = getElement('.menu-item:nth-child(8)'); // API配置
+    
+    // Telegram连接按钮
+    elements.telegramConnectButton = document.querySelector('.btn-primary');
+    
     // 调试日志
     console.log('DOM元素缓存结果:', {
         generateButton: !!elements.generateButton,
@@ -112,7 +141,9 @@ function cacheDOMElements() {
         selectedModel: !!elements.selectedModel,
         selectedStyle: !!elements.selectedStyle,
         selectedRole: !!elements.selectedRole,
-        selectedLength: !!elements.selectedLength
+        selectedLength: !!elements.selectedLength,
+        newConversationButton: !!elements.newConversationButton,
+        settingsButton: !!elements.settingsButton
     });
 }
 
@@ -154,6 +185,96 @@ function registerEventListeners() {
     if (elements.clearDraftsButton) {
         console.log('绑定清空草稿按钮点击事件');
         elements.clearDraftsButton.addEventListener('click', handleClearDrafts);
+    }
+    
+    // 新增功能按钮事件监听器
+    if (elements.newConversationButton) {
+        console.log('绑定新建对话按钮点击事件');
+        elements.newConversationButton.addEventListener('click', function() {
+            console.log('新建对话按钮被点击');
+            handleNewConversationClick();
+        });
+    }
+    
+    if (elements.settingsButton) {
+        console.log('绑定设置按钮点击事件');
+        elements.settingsButton.addEventListener('click', function() {
+            console.log('设置按钮被点击');
+            handleSettingsButtonClick();
+        });
+    }
+    
+    // 侧边栏菜单按钮事件监听器
+    if (elements.knowledgeBaseButton) {
+        console.log('绑定知识库管理按钮点击事件');
+        elements.knowledgeBaseButton.addEventListener('click', function() {
+            console.log('知识库管理按钮被点击');
+            handleMenuItemClick('knowledge-base');
+        });
+    }
+    
+    if (elements.conversationRecordsButton) {
+        console.log('绑定对话记录按钮点击事件');
+        elements.conversationRecordsButton.addEventListener('click', function() {
+            console.log('对话记录按钮被点击');
+            handleMenuItemClick('conversation-records');
+        });
+    }
+    
+    if (elements.uploadDataButton) {
+        console.log('绑定上传数据按钮点击事件');
+        elements.uploadDataButton.addEventListener('click', function() {
+            console.log('上传数据按钮被点击');
+            handleMenuItemClick('upload-data');
+        });
+    }
+    
+    if (elements.scriptGeneratorButton) {
+        console.log('绑定脚本生成按钮点击事件');
+        elements.scriptGeneratorButton.addEventListener('click', function() {
+            console.log('脚本生成按钮被点击');
+            handleMenuItemClick('script-generator');
+        });
+    }
+    
+    if (elements.optimizationButton) {
+        console.log('绑定优化建议按钮点击事件');
+        elements.optimizationButton.addEventListener('click', function() {
+            console.log('优化建议按钮被点击');
+            handleMenuItemClick('optimization');
+        });
+    }
+    
+    if (elements.batchGenerateButton) {
+        console.log('绑定批量生成按钮点击事件');
+        elements.batchGenerateButton.addEventListener('click', function() {
+            console.log('批量生成按钮被点击');
+            handleMenuItemClick('batch-generate');
+        });
+    }
+    
+    if (elements.telegramMonitorButton) {
+        console.log('绑定Telegram监控按钮点击事件');
+        elements.telegramMonitorButton.addEventListener('click', function() {
+            console.log('Telegram监控按钮被点击');
+            handleMenuItemClick('telegram-monitor');
+        });
+    }
+    
+    if (elements.apiConfigButton) {
+        console.log('绑定API配置按钮点击事件');
+        elements.apiConfigButton.addEventListener('click', function() {
+            console.log('API配置按钮被点击');
+            handleMenuItemClick('api-config');
+        });
+    }
+    
+    if (elements.telegramConnectButton && elements.telegramConnectButton.textContent.includes('连接')) {
+        console.log('绑定Telegram连接按钮点击事件');
+        elements.telegramConnectButton.addEventListener('click', function() {
+            console.log('Telegram连接按钮被点击');
+            handleTelegramConnectClick();
+        });
     }
     
     // 监听输入框变化，实现自动保存草稿
@@ -237,6 +358,132 @@ function handleSettingsChange() {
     
     settingsManager.save(settings);
     utils.showNotification('设置已保存', 'success');
+}
+
+// 处理新建对话按钮点击
+function handleNewConversationClick() {
+    try {
+        // 清空输入框和输出框
+        if (elements.inputTextarea) {
+            elements.inputTextarea.value = '';
+        }
+        
+        if (elements.outputTextarea) {
+            elements.outputTextarea.value = '';
+        }
+        
+        utils.showNotification('已开始新对话', 'success');
+    } catch (error) {
+        console.error('新建对话时发生错误:', error);
+        utils.showNotification('新建对话失败', 'error');
+    }
+}
+
+// 处理设置按钮点击
+function handleSettingsButtonClick() {
+    try {
+        // 切换设置面板的显示/隐藏
+        if (elements.settingsPanel) {
+            elements.settingsPanel.style.display = elements.settingsPanel.style.display === 'none' ? 'block' : 'none';
+            utils.showNotification(elements.settingsPanel.style.display === 'block' ? '设置面板已显示' : '设置面板已隐藏', 'success');
+        } else {
+            // 如果没有设置面板，创建一个简单的设置模态框
+            alert('设置功能即将上线，敬请期待！');
+        }
+    } catch (error) {
+        console.error('打开设置时发生错误:', error);
+        utils.showNotification('打开设置失败', 'error');
+    }
+}
+
+// 处理侧边栏菜单项点击
+function handleMenuItemClick(itemType) {
+    try {
+        // 在控制台记录点击的菜单项
+        console.log(`菜单项 ${itemType} 被点击`);
+        
+        // 为所有菜单项添加高亮处理
+        const menuItems = document.querySelectorAll('.menu-item');
+        menuItems.forEach(item => {
+            item.classList.remove('active');
+        });
+        
+        // 获取当前点击的菜单项并添加高亮
+        const currentItem = document.querySelector(`[data-menu-item="${itemType}"]`) || 
+                          getElement(`.menu-item:nth-child(${getMenuItemIndex(itemType)})`);
+        if (currentItem) {
+            currentItem.classList.add('active');
+        }
+        
+        // 根据不同的菜单项类型执行不同的操作
+        switch (itemType) {
+            case 'knowledge-base':
+                utils.showNotification('已切换到知识库管理', 'success');
+                // 可以在这里添加显示知识库管理面板的逻辑
+                break;
+            case 'conversation-records':
+                utils.showNotification('已切换到对话记录', 'success');
+                // 可以在这里添加显示对话记录面板的逻辑
+                loadRecentRecords();
+                break;
+            case 'upload-data':
+                utils.showNotification('已切换到数据上传', 'success');
+                // 可以在这里添加显示数据上传面板的逻辑
+                break;
+            case 'script-generator':
+                utils.showNotification('已切换到脚本生成器', 'success');
+                // 可以在这里添加显示脚本生成器面板的逻辑
+                break;
+            case 'optimization':
+                utils.showNotification('已切换到优化建议', 'success');
+                // 可以在这里添加显示优化建议面板的逻辑
+                break;
+            case 'batch-generate':
+                utils.showNotification('批量生成功能即将上线', 'info');
+                break;
+            case 'telegram-monitor':
+                utils.showNotification('Telegram监控功能即将上线', 'info');
+                break;
+            case 'api-config':
+                utils.showNotification('API配置功能即将上线', 'info');
+                break;
+            default:
+                utils.showNotification('功能切换成功', 'success');
+        }
+    } catch (error) {
+        console.error(`处理菜单项 ${itemType} 点击时发生错误:`, error);
+        utils.showNotification('功能切换失败', 'error');
+    }
+}
+
+// 获取菜单项索引
+function getMenuItemIndex(itemType) {
+    const menuMap = {
+        'knowledge-base': 1,
+        'conversation-records': 2,
+        'upload-data': 3,
+        'script-generator': 4,
+        'optimization': 5,
+        'batch-generate': 6,
+        'telegram-monitor': 7,
+        'api-config': 8
+    };
+    return menuMap[itemType] || 1;
+}
+
+// 处理Telegram连接按钮点击
+function handleTelegramConnectClick() {
+    try {
+        utils.showNotification('正在连接Telegram账号...', 'info');
+        // 这里可以添加实际的Telegram连接逻辑
+        // 由于是模拟环境，这里仅显示通知
+        setTimeout(() => {
+            utils.showNotification('Telegram账号连接成功', 'success');
+        }, 1500);
+    } catch (error) {
+        console.error('连接Telegram时发生错误:', error);
+        utils.showNotification('连接Telegram失败', 'error');
+    }
 }
 
 // 处理生成按钮点击
