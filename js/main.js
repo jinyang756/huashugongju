@@ -6,6 +6,7 @@
 import { getElement, getElements, showNotification, copyTextToClipboard, formatDateTime, debounce } from './utils.js';
 import { recentRecordsManager, statsManager, settingsManager, draftsManager } from './storage.js';
 import { generateScript, AVAILABLE_MODELS, AVAILABLE_STYLES, AVAILABLE_LENGTHS } from './scriptGenerator.js';
+import { initKnowledgeBase, retrieveKnowledge } from './knowledgeBase.js';
 
 // DOM元素缓存
 const elements = {
@@ -50,6 +51,12 @@ async function initApp() {
         
         console.log('应用初始化成功');
         showNotification('AI对话脚本生成器已就绪', 'info');
+        
+        // 初始化知识库功能
+        await initKnowledgeBase();
+        
+        // 设置模态框关闭事件
+        setupModalCloseEvent();
     } catch (error) {
         console.error('应用初始化失败:', error);
         showNotification('应用初始化失败，请刷新页面重试。', 'error');
@@ -68,6 +75,7 @@ function cacheDOMElements() {
     elements.settingsPanel = getElement('.settings-panel');
     elements.selectedModel = getElement('#model-select');
     elements.selectedStyle = getElement('#style-select');
+    elements.selectedRole = getElement('#role-select');
     elements.selectedLength = getElement('#length-select');
     elements.clearRecordsButton = getElement('#clear-records-btn');
     elements.clearDraftsButton = getElement('#clear-drafts-btn');
@@ -109,6 +117,10 @@ function registerEventListeners() {
         elements.selectedStyle.addEventListener('change', handleSettingsChange);
     }
     
+    if (elements.selectedRole) {
+        elements.selectedRole.addEventListener('change', handleSettingsChange);
+    }
+    
     if (elements.selectedLength) {
         elements.selectedLength.addEventListener('change', handleSettingsChange);
     }
@@ -124,6 +136,14 @@ function initSettings() {
     // 填充下拉选择框
     populateSelectOptions(elements.selectedModel, AVAILABLE_MODELS, settings.selectedModel);
     populateSelectOptions(elements.selectedStyle, AVAILABLE_STYLES, settings.selectedStyle);
+    if (elements.selectedRole) {
+        populateSelectOptions(elements.selectedRole, [
+            { id: 'customer_service', name: '客服-用户' },
+            { id: 'teacher_student', name: '老师-学生' },
+            { id: 'doctor_patient', name: '医生-患者' },
+            { id: 'sales_customer', name: '销售-客户' }
+        ], settings.selectedRole || 'customer_service');
+    }
     populateSelectOptions(elements.selectedLength, AVAILABLE_LENGTHS, settings.selectedLength, 'value', 'label');
 }
 
@@ -151,6 +171,7 @@ function handleSettingsChange() {
     const settings = {
         selectedModel: elements.selectedModel.value,
         selectedStyle: elements.selectedStyle.value,
+        selectedRole: elements.selectedRole ? elements.selectedRole.value : 'customer_service',
         selectedLength: parseInt(elements.selectedLength.value)
     };
     
@@ -177,11 +198,60 @@ async function handleGenerateClick() {
         // 获取当前设置
         const settings = settingsManager.get();
         
+        // 获取对话角色
+        const characterRole = elements.selectedRole ? elements.selectedRole.value : '客服-用户';
+        
+        // 构建上下文历史（如果当前有内容，可以作为历史）
+        const contextHistory = [];
+        if (elements.outputTextarea.value.trim()) {
+            // 简单处理：假设之前的输出是一个对话记录
+            // 实际应用中可能需要更复杂的解析逻辑
+            const previousContent = elements.outputTextarea.value.trim();
+            // 这里只是一个简单的模拟，实际应用中需要根据对话格式解析
+            if (previousContent.includes('用户：') && previousContent.includes('AI：')) {
+                const lines = previousContent.split('\n');
+                let currentMessage = '';
+                let currentRole = '';
+                
+                lines.forEach(line => {
+                    if (line.startsWith('用户：')) {
+                        if (currentMessage && currentRole) {
+                            contextHistory.push({ role: currentRole, content: currentMessage });
+                        }
+                        currentRole = '用户';
+                        currentMessage = line.substring(3).trim();
+                    } else if (line.startsWith('AI：')) {
+                        if (currentMessage && currentRole) {
+                            contextHistory.push({ role: currentRole, content: currentMessage });
+                        }
+                        currentRole = 'AI';
+                        currentMessage = line.substring(3).trim();
+                    } else if (currentMessage) {
+                        currentMessage += '\n' + line.trim();
+                    }
+                });
+                
+                // 添加最后一条消息
+                if (currentMessage && currentRole) {
+                    contextHistory.push({ role: currentRole, content: currentMessage });
+                }
+            }
+        }
+        
+        // 从知识库中检索相关内容
+        showNotification('正在从知识库检索相关信息...', 'info');
+        const relevantKnowledge = retrieveKnowledge(prompt);
+        
         // 记录开始时间
         const startTime = Date.now();
         
-        // 生成脚本
-        const result = await generateScript(prompt, settings);
+        // 生成脚本，传递上下文历史、角色信息和知识库内容
+        const result = await generateScript(prompt, {
+            ...settings,
+            contextHistory,
+            characterRole,
+            relevantKnowledge
+        });
         
         // 计算生成时间
         const generationTime = (Date.now() - startTime) / 1000;
@@ -237,6 +307,27 @@ async function handleCopyClick() {
     } catch (error) {
         console.error('复制失败:', error);
         showNotification('复制失败，请手动复制', 'error');
+    }
+}
+
+// 设置模态框关闭事件
+function setupModalCloseEvent() {
+    const closeButtons = getElements('.modal-close');
+    const modal = getElement('#text-knowledge-modal');
+    
+    if (modal && closeButtons && closeButtons.length > 0) {
+        closeButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                modal.style.display = 'none';
+            });
+        });
+        
+        // 点击模态框外部关闭
+        window.addEventListener('click', (event) => {
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
+        });
     }
 }
 
@@ -302,6 +393,17 @@ function createRecordItem(record) {
     const date = new Date(record.timestamp);
     const formattedDate = formatDateTime(date);
     
+    // 获取角色名称映射
+    const getRoleDisplayName = (roleId) => {
+        const roleMap = {
+            'customer_service': '客服-用户',
+            'teacher_student': '老师-学生',
+            'doctor_patient': '医生-患者',
+            'sales_customer': '销售-客户'
+        };
+        return roleMap[roleId] || roleId;
+    };
+    
     // 构建记录HTML
     item.innerHTML = `
         <div class="record-header">
@@ -311,6 +413,8 @@ function createRecordItem(record) {
         <div class="record-meta">
             <span class="record-model">${escapeHtml(record.model)}</span>
             <span class="record-style">${escapeHtml(record.style)}</span>
+            ${record.characterRole ? `<span class="record-role">${escapeHtml(getRoleDisplayName(record.characterRole))}</span>` : ''}
+            ${record.hasContext ? `<span class="record-context">带上下文</span>` : ''}
         </div>
         <div class="record-actions">
             <button class="record-action-btn load-btn" data-id="${record.id}">加载</button>

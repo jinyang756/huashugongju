@@ -99,6 +99,91 @@ export function throttle(func, limit) {
     };
 }
 
+// 读取文件内容
+export async function readFileContent(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (event) => resolve(event.target.result);
+        reader.onerror = reject;
+        
+        if (file.type.includes('text') || file.name.endsWith('.txt')) {
+            reader.readAsText(file);
+        } else if (file.name.endsWith('.json')) {
+            reader.readAsText(file);
+        } else if (file.name.endsWith('.csv')) {
+            reader.readAsText(file);
+        } else if (file.type.includes('spreadsheet') || file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
+            // 对于Excel文件，这里只是简单处理，实际项目中可能需要专门的库
+            reader.readAsArrayBuffer(file);
+        } else {
+            reject(new Error('不支持的文件类型'));
+        }
+    });
+}
+
+// 解析CSV文件
+export function parseCSV(csvText) {
+    const lines = csvText.split('\n');
+    const headers = lines[0].split(',').map(header => header.trim());
+    const data = [];
+    
+    for (let i = 1; i < lines.length; i++) {
+        const values = lines[i].split(',');
+        const row = {};
+        
+        headers.forEach((header, index) => {
+            row[header] = values[index] ? values[index].trim() : '';
+        });
+        
+        if (Object.values(row).some(value => value !== '')) {
+            data.push(row);
+        }
+    }
+    
+    return {
+        headers,
+        data
+    };
+}
+
+// 提取文本摘要（用于知识库）
+export function extractTextSummary(text, maxLength = 200) {
+    // 移除多余的空白字符
+    const cleanedText = text.replace(/\s+/g, ' ').trim();
+    
+    // 截取指定长度的文本
+    if (cleanedText.length <= maxLength) {
+        return cleanedText;
+    }
+    
+    // 尝试在句子边界处截断
+    const truncated = cleanedText.substring(0, maxLength);
+    const lastPeriodIndex = truncated.lastIndexOf('.');
+    const lastCommaIndex = truncated.lastIndexOf(',');
+    const lastSpaceIndex = truncated.lastIndexOf(' ');
+    
+    let cutIndex = lastPeriodIndex > 0 ? lastPeriodIndex + 1 : 
+                  (lastCommaIndex > 0 ? lastCommaIndex + 1 : 
+                  (lastSpaceIndex > 0 ? lastSpaceIndex : maxLength));
+    
+    return truncated.substring(0, cutIndex).trim() + '...';
+}
+
+// 验证文件大小
+export function validateFileSize(file, maxSizeMB = 10) {
+    const maxSizeBytes = maxSizeMB * 1024 * 1024;
+    return file.size <= maxSizeBytes;
+}
+
+// 支持的文件类型
+export const SUPPORTED_FILE_TYPES = [
+    { type: 'text/plain', extension: '.txt', name: '文本文件' },
+    { type: 'application/json', extension: '.json', name: 'JSON文件' },
+    { type: 'text/csv', extension: '.csv', name: 'CSV文件' },
+    { type: 'application/vnd.ms-excel', extension: '.xls', name: 'Excel 97-2003' },
+    { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', extension: '.xlsx', name: 'Excel' }
+];
+
 // 随机生成唯一ID
 export function generateId() {
     return Math.random().toString(36).substr(2, 9);

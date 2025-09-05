@@ -289,6 +289,17 @@
                 </div>
                 <div style="margin-bottom: 1rem;">
                     <label style="display: block; font-size: 0.875rem; margin-bottom: 0.5rem; color: var(--text-secondary);">
+                        对话角色
+                    </label>
+                    <select id="role-select" name="role" style="width: 100%; padding: 0.75rem; border-radius: 8px; background: var(--bg-tertiary); border: 1px solid var(--border-color); color: var(--text-primary);">
+                        <option value="客服-用户">客服-用户</option>
+                        <option value="老师-学生">老师-学生</option>
+                        <option value="医生-患者">医生-患者</option>
+                        <option value="销售-客户">销售-客户</option>
+                    </select>
+                </div>
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; font-size: 0.875rem; margin-bottom: 0.5rem; color: var(--text-secondary);">
                         对话风格
                     </label>
                     <select id="style-select" name="style" style="width: 100%; padding: 0.75rem; border-radius: 8px; background: var(--bg-tertiary); border: 1px solid var(--border-color); color: var(--text-primary);">
@@ -313,5 +324,66 @@
     </div>
 
     <script type="module" src="js/main.js"></script>
+    
+    <!-- 知识库管理模块 -->
+    <div class="knowledge-base-container">
+        <div class="knowledge-base-header">
+            <h2>知识库管理</h2>
+            <div class="knowledge-base-actions">
+                <button id="file-upload-btn" class="btn btn-primary">
+                    <i class="fas fa-upload"></i> 上传文件
+                </button>
+                <input type="file" id="file-input" multiple accept=".txt,.csv,.json" style="display: none;">
+                <button id="add-text-knowledge-btn" class="btn btn-secondary">
+                    <i class="fas fa-plus"></i> 添加文本
+                </button>
+            </div>
+        </div>
+        
+        <!-- 搜索框 -->
+        <div class="search-section">
+            <input 
+                type="text" 
+                id="knowledge-search-input" 
+                placeholder="搜索知识库内容..."
+                class="search-input"
+            >
+        </div>
+        
+        <!-- 知识库项目列表 -->
+        <div class="knowledge-items-container">
+            <!-- 知识库项目会通过JS动态加载 -->
+        </div>
+    </div>
+    
+    <!-- 添加文本知识模态框 -->
+    <div id="text-knowledge-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>添加文本知识</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="text-knowledge-form">
+                    <div class="form-group">
+                        <label for="knowledge-title">标题</label>
+                        <input type="text" id="knowledge-title" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="knowledge-content">内容</label>
+                        <textarea id="knowledge-content" rows="10" required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="knowledge-tags">标签（用逗号分隔）</label>
+                        <input type="text" id="knowledge-tags" placeholder="例如: 产品, 价格, 营销">
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">保存</button>
+                        <button type="button" class="btn btn-secondary modal-close">取消</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

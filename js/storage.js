@@ -14,6 +14,7 @@ const STORAGE_KEYS = {
 const DEFAULT_SETTINGS = {
     selectedModel: 'GPT-3.5 Turbo',
     selectedStyle: 'professional',
+    selectedRole: 'customer_service',
     selectedLength: 5,
     theme: 'dark',
     notifications: true
@@ -180,5 +181,60 @@ export const draftsManager = {
     },
     clear: function() {
         return removeFromStorage(STORAGE_KEYS.DRAFTS);
+    }
+};
+
+// 添加知识库存储键
+STORAGE_KEYS.KNOWLEDGE_BASE = 'script_generator_knowledge_base';
+
+// 管理知识库
+export const knowledgeBaseManager = {
+    get: function() {
+        return getFromStorage(STORAGE_KEYS.KNOWLEDGE_BASE, []);
+    },
+    add: function(item) {
+        const items = this.get();
+        const newItem = {
+            id: Date.now().toString(),
+            title: item.title,
+            content: item.content,
+            type: item.type || 'text', // text, document, spreadsheet
+            source: item.source || 'upload',
+            tags: item.tags || [],
+            timestamp: new Date().toISOString()
+        };
+        items.push(newItem);
+        return saveToStorage(STORAGE_KEYS.KNOWLEDGE_BASE, items);
+    },
+    update: function(id, updates) {
+        const items = this.get();
+        const itemIndex = items.findIndex(item => item.id === id);
+        if (itemIndex !== -1) {
+            items[itemIndex] = {...items[itemIndex], ...updates, timestamp: new Date().toISOString()};
+            return saveToStorage(STORAGE_KEYS.KNOWLEDGE_BASE, items);
+        }
+        return false;
+    },
+    remove: function(id) {
+        const items = this.get();
+        const filteredItems = items.filter(item => item.id !== id);
+        return saveToStorage(STORAGE_KEYS.KNOWLEDGE_BASE, filteredItems);
+    },
+    search: function(query) {
+        if (!query || query.trim() === '') {
+            return this.get();
+        }
+        
+        const items = this.get();
+        const searchTerm = query.toLowerCase().trim();
+        
+        return items.filter(item => 
+            item.title.toLowerCase().includes(searchTerm) ||
+            item.content.toLowerCase().includes(searchTerm) ||
+            item.tags.some(tag => tag.toLowerCase().includes(searchTerm))
+        );
+    },
+    clear: function() {
+        return removeFromStorage(STORAGE_KEYS.KNOWLEDGE_BASE);
     }
 };
