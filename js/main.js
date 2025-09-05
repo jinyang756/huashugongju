@@ -118,20 +118,20 @@ function cacheDOMElements() {
     elements.newConversationButton = document.querySelector('.btn-primary'); // 新建对话按钮
     elements.settingsButton = document.querySelector('.btn-secondary'); // 设置按钮
     
-    // 侧边栏菜单按钮
-    elements.knowledgeBaseButton = getElement('.menu-item:nth-child(1)'); // 知识库管理
-    elements.conversationRecordsButton = getElement('.menu-item:nth-child(2)'); // 对话记录
-    elements.uploadDataButton = getElement('.menu-item:nth-child(3)'); // 上传数据
-    elements.scriptGeneratorButton = getElement('.menu-item:nth-child(4)'); // 脚本生成
-    elements.optimizationButton = getElement('.menu-item:nth-child(5)'); // 优化建议
-    elements.batchGenerateButton = getElement('.menu-item:nth-child(6)'); // 批量生成
-    elements.telegramMonitorButton = getElement('.menu-item:nth-child(7)'); // Telegram监控
-    elements.apiConfigButton = getElement('.menu-item:nth-child(8)'); // API配置
+    // 侧边栏菜单按钮 - 使用data-menu-item属性选择器确保准确选择
+    elements.knowledgeBaseButton = getElement('[data-menu-item="knowledge-base"]'); // 知识库管理
+    elements.conversationRecordsButton = getElement('[data-menu-item="conversation-records"]'); // 对话记录
+    elements.uploadDataButton = getElement('[data-menu-item="upload-data"]'); // 上传数据
+    elements.scriptGeneratorButton = getElement('[data-menu-item="script-generator"]'); // 脚本生成
+    elements.optimizationButton = getElement('[data-menu-item="optimization"]'); // 优化建议
+    elements.batchGenerateButton = getElement('[data-menu-item="batch-generate"]'); // 批量生成
+    elements.telegramMonitorButton = getElement('[data-menu-item="telegram-monitor"]'); // Telegram监控
+    elements.apiConfigButton = getElement('[data-menu-item="api-config"]'); // API配置
     
     // Telegram连接按钮
-    elements.telegramConnectButton = document.querySelector('.btn-primary');
+    elements.telegramConnectButton = document.querySelector('.telegram-connect');
     
-    // 调试日志
+    // 调试日志 - 包含所有侧边栏菜单按钮状态
     console.log('DOM元素缓存结果:', {
         generateButton: !!elements.generateButton,
         inputTextarea: !!elements.inputTextarea,
@@ -143,7 +143,16 @@ function cacheDOMElements() {
         selectedRole: !!elements.selectedRole,
         selectedLength: !!elements.selectedLength,
         newConversationButton: !!elements.newConversationButton,
-        settingsButton: !!elements.settingsButton
+        settingsButton: !!elements.settingsButton,
+        knowledgeBaseButton: !!elements.knowledgeBaseButton,
+        conversationRecordsButton: !!elements.conversationRecordsButton,
+        uploadDataButton: !!elements.uploadDataButton,
+        scriptGeneratorButton: !!elements.scriptGeneratorButton,
+        optimizationButton: !!elements.optimizationButton,
+        batchGenerateButton: !!elements.batchGenerateButton,
+        telegramMonitorButton: !!elements.telegramMonitorButton,
+        apiConfigButton: !!elements.apiConfigButton,
+        telegramConnectButton: !!elements.telegramConnectButton
     });
 }
 
