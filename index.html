@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI对话脚本生成器</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <!-- 导航栏 -->
+    <nav class="navbar">
+        <div class="logo">
+            <div class="logo-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                    <path d="M12 2L2 7L12 12L22 7L12 2Z"></path>
+                    <path d="M2 17L12 22L22 17"></path>
+                    <path d="M2 12L12 17L22 12"></path>
+                </svg>
+            </div>
+            <span>AI Script Generator</span>
+        </div>
+        <div class="nav-buttons">
+            <button class="btn btn-secondary">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="3"></circle>
+                    <path d="M12 1v6m0 6v6m4.22-13.22l4.24 4.24M1.54 1.54l4.24 4.24M20.46 20.46l-4.24-4.24M1.54 20.46l4.24-4.24"></path>
+                </svg>
+                设置
+            </button>
+            <button class="btn btn-primary">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="12" y1="18" x2="12" y2="12"></line>
+                    <line x1="9" y1="15" x2="15" y2="15"></line>
+                </svg>
+                新建对话
+            </button>
+        </div>
+    </nav>
+
+    <div class="container">
+        <!-- 侧边栏 -->
+        <aside class="sidebar">
+            <div class="sidebar-section">
+                <div class="section-title">数据管理</div>
+                <div class="menu-item active">
+                    <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                    </svg>
+                    知识库管理
+                </div>
+                <div class="menu-item">
+                    <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                    </svg>
+                    对话记录
+                </div>
+                <div class="menu-item">
+                    <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="17 8 12 3 7 8"></polyline>
+                        <line x1="12" y1="3" x2="12" y2="15"></line>
+                    </svg>
+                    上传数据
+                </div>
+            </div>
+
+            <div class="sidebar-section">
+                <div class="section-title">生成器</div>
+                <div class="menu-item">
+                    <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 2L2 7L12 12L22 7L12 2Z"></path>
+                    </svg>
+                    脚本生成
+                </div>
+                <div class="menu-item">
+                    <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                    </svg>
+                    优化建议
+                </div>
+                <div class="menu-item">
+                    <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                        <polyline points="15 3 21 3 21 9"></polyline>
+                        <line x1="10" y1="14" x2="21" y2="3"></line>
+                    </svg>
+                    批量生成
+                </div>
+            </div>
+
+            <div class="sidebar-section">
+                <div class="section-title">集成</div>
+                <div class="menu-item">
+                    <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M23 3a10.9 10.9 0 0 1-3.14 1.53 4.48 4.48 0 0 0-7.86 3v1A10.66 10.66 0 0 1 3 4s-4 9 5 13a11.64 11.64 0 0 1-7 2c9 5 20 0 20-11.5a4.5 4.5 0 0 0-.08-.83A7.72 7.72 0 0 0 23 3z"></path>
+                    </svg>
+                    Telegram监控
+                </div>
+                <div class="menu-item">
+                    <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                        <polyline points="22,6 12,13 2,6"></polyline>
+                    </svg>
+                    API配置
+                </div>
+            </div>
+        </aside>
+
+        <!-- 主内容区 -->
+        <main class="main-content">
+            <div class="toolbar">
+                <div class="search-bar">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <path d="m21 21-4.35-4.35"></path>
+                    </svg>
+                    <input type="text" class="search-input" placeholder="搜索知识库或对话记录...">
+                </div>
+                <div class="status-indicator">
+                    <span class="status-dot online"></span>
+                    <span style="font-size: 0.875rem;">AI模型已就绪</span>
+                </div>
+            </div>
+
+            <div class="content-area">
+                <!-- 统计面板 -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value">1,248</div>
+                        <div class="stat-label">生成的脚本</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">89%</div>
+                        <div class="stat-label">准确率</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">324</div>
+                        <div class="stat-label">活跃群组</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">15.2K</div>
+                        <div class="stat-label">知识条目</div>
+                    </div>
+                </div>
+
+                <!-- 脚本生成器 -->
+                <div class="script-generator">
+                    <div class="input-section">
+                        <div class="card-header">
+                            <h3 class="card-title">输入上下文</h3>
+                            <span class="card-badge badge-warning">待处理</span>
+                        </div>
+                        <p style="color: var(--text-secondary); font-size: 0.875rem; margin-bottom: 1rem;">
+                            请输入对话的背景信息、场景描述或历史对话，AI将基于这些内容生成合适的对话脚本。
+                        </p>
+                        <div class="textarea-container">
+                            <textarea id="input-textarea" class="custom-textarea" placeholder="例如：生成一段客服与用户关于产品退款的对话，用户情绪比较激动，需要客服耐心安抚并提供解决方案..."></textarea>
+                        </div>
+                        <div class="action-buttons">
+                            <button class="action-btn btn-secondary">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                                    <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                                    <polyline points="7 3 7 8 15 8"></polyline>
+                                </svg>
+                                保存草稿
+                            </button>
+                            <button id="generate-btn" class="action-btn generate-btn">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+                                </svg>
+                                生成脚本
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="output-section">
+                        <div class="card-header">
+                            <h3 class="card-title">生成结果</h3>
+                            <span class="card-badge badge-success">已完成</span>
+                        </div>
+                        <p style="color: var(--text-secondary); font-size: 0.875rem; margin-bottom: 1rem;">
+                            AI生成的对话脚本将显示在这里，可以直接复制使用或进行二次编辑。
+                        </p>
+                        <div class="textarea-container">
+                            <textarea id="output-textarea" class="custom-textarea" readonly>客服: 您好，非常抱歉给您带来了不好的体验，我理解您现在的心情，我们一定会尽力解决您的问题。
+
+用户: 你们的产品质量太差了，我才用了两天就坏了，必须给我退款！
+
+客服: 非常抱歉出现这种情况，您先别着急。为了尽快帮您处理，请您提供一下订单号和产品问题的照片可以吗？我们核实后会立即为您安排退款，并且额外赠送您一张50元的优惠券作为补偿。
+
+用户: 订单号是123456，照片我稍后发给你，希望你们能尽快处理。
+
+客服: 感谢您的配合，我们承诺在收到您的资料后24小时内完成处理，处理结果会通过短信通知您。给您带来的不便再次表示歉意。</textarea>
+                        </div>
+                        <div class="action-buttons">
+                            <button id="copy-btn" class="action-btn btn-secondary">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                    <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                                    <polyline points="21 15 16 10 5 21"></polyline>
+                                </svg>
+                                复制结果
+                            </button>
+                            <button id="edit-btn" class="action-btn btn-secondary">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                </svg>
+                                编辑优化
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 最近生成记录 -->
+                <div class="recent-records">
+                    <div class="card-actions" style="margin-top: 0.5rem; margin-bottom: 1rem;">
+                        <button id="clear-records-btn" class="btn btn-sm btn-secondary">
+                            清空记录
+                        </button>
+                    </div>
+                    <div class="card-header">
+                        <h3 class="card-title">最近生成记录</h3>
+                    </div>
+                    <div class="record-item">
+                        <div class="record-title">产品退款客服对话</div>
+                        <div class="record-meta">
+                            <span>今天 14:35</span>
+                            <span>准确率: 92%</span>
+                        </div>
+                    </div>
+                    <div class="record-item">
+                        <div class="record-title">电商平台售后咨询</div>
+                        <div class="record-meta">
+                            <span>昨天 09:12</span>
+                            <span>准确率: 87%</span>
+                        </div>
+                    </div>
+                    <div class="record-item">
+                        <div class="record-title">软件使用指导对话</div>
+                        <div class="record-meta">
+                            <span>2023-10-28</span>
+                            <span>准确率: 94%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- 右侧面板 -->
+        <aside class="right-panel">
+            <div class="telegram-integration">
+                <div class="integration-header">
+                    <div class="integration-icon">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
+                            <path d="M20.66 10.96c-.84.44-1.76.71-2.72.81l-1.07-.95c.18-.56.29-1.13.29-1.71 0-2.08-1.68-3.76-3.76-3.76-.58 0-1.15.11-1.65.31L11.1 3.8a4.64 4.64 0 0 1 1.89 3.65c0 .29-.03.57-.08.84l-1.67.87c-.12-.35-.27-.69-.46-1.01l.92-1.74-1.4-.23a.48.48 0 0 0-.53.28l-1.1 1.83-.24-1.41c-.05-.29-.24-.54-.51-.68l-1.5-1A4.62 4.62 0 0 1 9.3 7.1c0 1.36.56 2.58 1.46 3.48l-1.4 1.27c-.32-.08-.63-.12-.96-.12-1.06 0-2.06.34-2.9.9l-.37 1.95c1.39.47 2.87.72 4.4 0l1.74-.73c.65.96 1.57 1.74 2.63 2.26l.85 1.63c-1.1.35-2.25.54-3.43.54-.22 0-.44-.01-.66-.02l-.37 1.95c1.55.5 3.16.75 4.81.75 4.97 0 9-4.03 9-9 0-.69-.08-1.36-.23-2.02l-1.11.49z"/>
+                        </svg>
+                    </div>
+                    <h3 class="card-title">Telegram集成</h3>
+                </div>
+                <p style="font-size: 0.875rem; color: var(--text-secondary); margin-bottom: 1rem;">
+                    将生成的对话脚本自动同步到Telegram群组，实时监控对话效果。
+                </p>
+                <button class="btn btn-primary action-btn telegram-connect" style="width: 100%;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M23 3a10.9 10.9 0 0 1-3.14 1.53 4.48 4.48 0 0 0-7.86 3v1A10.66 10.66 0 0 1 3 4s-4 9 5 13a11.64 11.64 0 0 1-7 2c9 5 20 0 20-11.5a4.5 4.5 0 0 0-.08-.83A7.72 7.72 0 0 0 23 3z"></path>
+                    </svg>
+                    连接Telegram账号
+                </button>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">生成设置</h3>
+                </div>
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; font-size: 0.875rem; margin-bottom: 0.5rem; color: var(--text-secondary);">
+                        AI模型选择
+                    </label>
+                    <select id="model-select" name="model" style="width: 100%; padding: 0.75rem; border-radius: 8px; background: var(--bg-tertiary); border: 1px solid var(--border-color); color: var(--text-primary);">
+                        <option>GPT-4</option>
+                        <option selected>GPT-3.5 Turbo</option>
+                        <option>Claude 2</option>
+                    </select>
+                </div>
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; font-size: 0.875rem; margin-bottom: 0.5rem; color: var(--text-secondary);">
+                        对话风格
+                    </label>
+                    <select id="style-select" name="style" style="width: 100%; padding: 0.75rem; border-radius: 8px; background: var(--bg-tertiary); border: 1px solid var(--border-color); color: var(--text-primary);">
+                        <option value="professional">正式专业</option>
+                        <option value="friendly">轻松活泼</option>
+                        <option value="persuasive">简洁明了</option>
+                        <option value="detailed">详细周到</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="display: block; font-size: 0.875rem; margin-bottom: 0.5rem; color: var(--text-secondary);">
+                        对话长度
+                    </label>
+                    <div style="display: flex; align-items: center; gap: 1rem;">
+                        <span style="font-size: 0.75rem;">短</span>
+                        <input id="length-select" type="range" name="length" min="1" max="10" value="5" style="flex: 1; accent-color: var(--accent-blue);">
+                        <span style="font-size: 0.75rem;">长</span>
+                    </div>
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <script type="module" src="js/main.js"></script>
+</body>
+</html>
