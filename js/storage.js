@@ -12,7 +12,8 @@ storage.STORAGE_KEYS = {
     STATS: 'script_generator_stats',
     SETTINGS: 'script_generator_settings',
     DRAFTS: 'script_generator_drafts',
-    KNOWLEDGE_BASE: 'script_generator_knowledge_base'
+    KNOWLEDGE_BASE: 'script_generator_knowledge_base',
+    TELEGRAM_SETTINGS: 'script_generator_telegram_settings'
 };
 
 // 默认设置
@@ -23,6 +24,16 @@ storage.DEFAULT_SETTINGS = {
     selectedLength: 5,
     theme: 'dark',
     notifications: true
+};
+
+// 默认Telegram设置
+storage.DEFAULT_TELEGRAM_SETTINGS = {
+    botKey: '',
+    isConnected: false,
+    connectedAt: null,
+    lastMessageId: 0,
+    isMonitoring: false,
+    chatIds: []
 };
 
 // 获取本地存储中的数据
@@ -255,5 +266,95 @@ storage.knowledgeBaseManager = {
     },
     clear: function() {
         return storage.removeFromStorage(storage.STORAGE_KEYS.KNOWLEDGE_BASE);
+    }
+};
+
+// 管理Telegram设置
+storage.telegramSettingsManager = {
+    // 获取完整的Telegram设置（包含默认值）
+    getSettings: function() {
+        const savedSettings = storage.getFromStorage(storage.STORAGE_KEYS.TELEGRAM_SETTINGS, {});
+        return {...storage.DEFAULT_TELEGRAM_SETTINGS, ...savedSettings};
+    },
+    
+    // 保存Telegram设置
+    saveSettings: function(settings) {
+        const currentSettings = this.getSettings();
+        const newSettings = {...currentSettings, ...settings};
+        return storage.saveToStorage(storage.STORAGE_KEYS.TELEGRAM_SETTINGS, newSettings);
+    },
+    
+    // 清除所有Telegram设置
+    clearSettings: function() {
+        return storage.removeFromStorage(storage.STORAGE_KEYS.TELEGRAM_SETTINGS);
+    },
+    
+    // 获取Bot Key
+    getBotKey: function() {
+        return this.getSettings().botKey || '';
+    },
+    
+    // 保存Bot Key
+    setBotKey: function(botKey) {
+        return this.saveSettings({ botKey });
+    },
+    
+    // 获取连接状态
+    isConnected: function() {
+        return this.getSettings().isConnected || false;
+    },
+    
+    // 设置连接状态
+    setConnected: function(isConnected) {
+        const settings = {
+            isConnected,
+            connectedAt: isConnected ? new Date().toISOString() : null
+        };
+        return this.saveSettings(settings);
+    },
+    
+    // 获取最后消息ID
+    getLastMessageId: function() {
+        return this.getSettings().lastMessageId || 0;
+    },
+    
+    // 更新最后消息ID
+    updateLastMessageId: function(messageId) {
+        return this.saveSettings({ lastMessageId: messageId });
+    },
+    
+    // 获取监控状态
+    isMonitoring: function() {
+        return this.getSettings().isMonitoring || false;
+    },
+    
+    // 设置监控状态
+    setMonitoring: function(isMonitoring) {
+        return this.saveSettings({ isMonitoring });
+    },
+    
+    // 获取已保存的聊天ID列表
+    getChatIds: function() {
+        return this.getSettings().chatIds || [];
+    },
+    
+    // 添加聊天ID到列表
+    addChatId: function(chatId) {
+        const chatIds = this.getChatIds();
+        if (!chatIds.includes(chatId)) {
+            chatIds.push(chatId);
+            return this.saveSettings({ chatIds });
+        }
+        return true;
+    },
+    
+    // 从列表中移除聊天ID
+    removeChatId: function(chatId) {
+        const chatIds = this.getChatIds();
+        const filteredChatIds = chatIds.filter(id => id !== chatId);
+        if (filteredChatIds.length !== chatIds.length) {
+            return this.saveSettings({ chatIds: filteredChatIds });
+        }
+        return true;
     }
 };

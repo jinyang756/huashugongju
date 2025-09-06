@@ -4,10 +4,10 @@
  */
 
 // 从全局对象中获取所需功能
-const { getElement, getElements, copyTextToClipboard, formatDateTime, debounce } = utils;
-const { recentRecordsManager, statsManager, settingsManager, draftsManager } = storage;
-const { generateScript, AVAILABLE_MODELS, AVAILABLE_STYLES, AVAILABLE_LENGTHS } = scriptGenerator;
-const { initKnowledgeBase, retrieveKnowledge } = knowledgeBase;
+const { getElement, getElements, copyTextToClipboard, formatDateTime, debounce } = window.utils || {};
+const { recentRecordsManager, statsManager, settingsManager, draftsManager } = window.storage || {};
+const { generateScript, AVAILABLE_MODELS, AVAILABLE_STYLES, AVAILABLE_LENGTHS } = window.scriptGenerator || {};
+const { initKnowledgeBase = function(){}, retrieveKnowledge = function(){return [];} } = window.knowledgeBase || {};
 
 // 全局调试函数
 window.debugApp = function() {
@@ -90,6 +90,10 @@ async function initApp() {
         
         // 设置模态框关闭事件
         setupModalCloseEvent();
+        
+        // 初始化Telegram连接状态
+        const telegramStatus = window.telegramIntegration.getConnectionStatus();
+        updateTelegramConnectionStatus(telegramStatus.isConnected);
     } catch (error) {
         console.error('应用初始化失败:', error);
         utils.showNotification('应用初始化失败，请刷新页面重试。', 'error');
@@ -99,11 +103,19 @@ async function initApp() {
 // 缓存DOM元素
 function cacheDOMElements() {
     console.log('开始缓存DOM元素...');
+    
+    // 缓存对话标签和容器
+    elements.conversationTabs = getElement('#conversation-tabs');
+    elements.conversationContainer = getElement('#conversation-container');
+    
+    // 缓存初始对话面板的元素
     elements.generateButton = getElement('#generate-btn');
     elements.inputTextarea = getElement('#input-textarea');
     elements.outputTextarea = getElement('#output-textarea');
     elements.copyButton = getElement('#copy-btn');
     elements.editButton = getElement('#edit-btn');
+    
+    // 其他通用元素缓存
     elements.recentRecordsContainer = getElement('.recent-records');
     elements.statValues = getElements('.stat-value');
     elements.settingsPanel = getElement('.settings-panel');
@@ -115,7 +127,7 @@ function cacheDOMElements() {
     elements.clearDraftsButton = getElement('#clear-drafts-btn');
     
     // 新增功能按钮缓存
-    elements.newConversationButton = document.querySelector('.btn-primary'); // 新建对话按钮
+    elements.newConversationButton = document.querySelector('#new-conversation-btn'); // 新建对话按钮
     elements.settingsButton = document.querySelector('.btn-secondary'); // 设置按钮
     
     // 侧边栏菜单按钮 - 使用data-menu-item属性选择器确保准确选择
@@ -246,6 +258,17 @@ function registerEventListeners() {
         });
     }
     
+    // 为对话标签添加点击事件监听器
+    if (elements.conversationTabs) {
+        const initialTabs = elements.conversationTabs.querySelectorAll('.conversation-tab');
+        initialTabs.forEach(tab => {
+            tab.addEventListener('click', function() {
+                const tabNumber = parseInt(this.getAttribute('data-tab'));
+                switchToTab(tabNumber);
+            });
+        });
+    }
+    
     if (elements.optimizationButton) {
         console.log('绑定优化建议按钮点击事件');
         elements.optimizationButton.addEventListener('click', function() {
@@ -372,19 +395,190 @@ function handleSettingsChange() {
 // 处理新建对话按钮点击
 function handleNewConversationClick() {
     try {
-        // 清空输入框和输出框
-        if (elements.inputTextarea) {
-            elements.inputTextarea.value = '';
+        const tabsContainer = document.getElementById('conversation-tabs');
+        const conversationContainer = document.getElementById('conversation-container');
+        
+        // 获取当前对话数量
+        const currentTabs = tabsContainer.querySelectorAll('.conversation-tab');
+        const tabCount = currentTabs.length;
+        
+        // 检查是否已达到最大对话数量
+        if (tabCount >= 10) {
+            utils.showNotification('最多只能同时开启10个对话', 'error');
+            return;
         }
         
-        if (elements.outputTextarea) {
-            elements.outputTextarea.value = '';
+        // 创建新的对话标签
+        const newTabNumber = tabCount + 1;
+        const newTab = document.createElement('div');
+        newTab.className = 'conversation-tab active';
+        newTab.setAttribute('data-tab', newTabNumber);
+        newTab.innerHTML = `
+            <span class="tab-number">${newTabNumber}</span>
+            对话 ${newTabNumber}
+        `;
+        
+        // 移除所有其他标签的active状态
+        currentTabs.forEach(tab => tab.classList.remove('active'));
+        
+        // 添加标签点击事件
+        newTab.addEventListener('click', function() {
+            switchToTab(newTabNumber);
+        });
+        
+        // 将新标签添加到标签容器
+        tabsContainer.appendChild(newTab);
+        
+        // 获取第一个对话面板作为模板
+        const firstPanel = conversationContainer.querySelector('.conversation-panel[data-panel="1"]');
+        if (!firstPanel) {
+            utils.showNotification('创建新对话失败', 'error');
+            return;
         }
         
-        utils.showNotification('已开始新对话', 'success');
+        // 克隆第一个面板并修改ID和属性
+        const newPanel = firstPanel.cloneNode(true);
+        newPanel.setAttribute('data-panel', newTabNumber);
+        
+        // 清空新面板中的输入和输出内容
+        const newInput = newPanel.querySelector('#input-textarea');
+        const newOutput = newPanel.querySelector('#output-textarea');
+        if (newInput) {
+            newInput.value = '';
+        }
+        if (newOutput) {
+            newOutput.value = '';
+        }
+        
+        // 修改所有相关元素的ID，避免ID冲突
+        const elementsToUpdate = newPanel.querySelectorAll('[id]');
+        elementsToUpdate.forEach(element => {
+            const oldId = element.id;
+            if (oldId) {
+                element.id = `${oldId}-${newTabNumber}`;
+            }
+        });
+        
+        // 添加新面板到对话容器
+        conversationContainer.appendChild(newPanel);
+        
+        // 切换到新创建的标签
+        switchToTab(newTabNumber);
+        
+        // 重新注册事件监听器，确保新面板的功能正常
+        registerEventListenersForPanel(newPanel, newTabNumber);
+        
+        utils.showNotification(`已创建新对话 ${newTabNumber}`, 'success');
     } catch (error) {
         console.error('新建对话时发生错误:', error);
         utils.showNotification('新建对话失败', 'error');
+    }
+}
+
+// 切换到指定标签
+function switchToTab(tabNumber) {
+    const tabsContainer = document.getElementById('conversation-tabs');
+    const conversationContainer = document.getElementById('conversation-container');
+    
+    // 更新标签状态
+    const tabs = tabsContainer.querySelectorAll('.conversation-tab');
+    tabs.forEach(tab => {
+        const currentTabNumber = parseInt(tab.getAttribute('data-tab'));
+        if (currentTabNumber === tabNumber) {
+            tab.classList.add('active');
+        } else {
+            tab.classList.remove('active');
+        }
+    });
+    
+    // 更新面板显示
+    const panels = conversationContainer.querySelectorAll('.conversation-panel');
+    panels.forEach(panel => {
+        const currentPanelNumber = parseInt(panel.getAttribute('data-panel'));
+        if (currentPanelNumber === tabNumber) {
+            panel.style.display = 'block';
+        } else {
+            panel.style.display = 'none';
+        }
+    });
+}
+
+// 为新面板注册事件监听器
+function registerEventListenersForPanel(panel, tabNumber) {
+    // 为新面板的生成按钮注册事件
+    const generateButton = panel.querySelector(`#generate-btn-${tabNumber}`);
+    if (generateButton) {
+        generateButton.addEventListener('click', function() {
+            // 处理生成逻辑，传入当前面板的输入值
+            const inputTextarea = panel.querySelector(`#input-textarea-${tabNumber}`);
+            const outputTextarea = panel.querySelector(`#output-textarea-${tabNumber}`);
+            
+            // 临时保存原始元素引用
+            const originalInput = elements.inputTextarea;
+            const originalOutput = elements.outputTextarea;
+            
+            // 临时替换元素引用为当前面板的元素
+            elements.inputTextarea = inputTextarea;
+            elements.outputTextarea = outputTextarea;
+            
+            // 调用原始的处理函数
+            handleGenerateClick();
+            
+            // 恢复原始元素引用
+            setTimeout(() => {
+                elements.inputTextarea = originalInput;
+                elements.outputTextarea = originalOutput;
+            }, 100);
+        });
+    }
+    
+    // 为新面板的复制按钮注册事件
+    const copyButton = panel.querySelector(`#copy-btn-${tabNumber}`);
+    if (copyButton) {
+        copyButton.addEventListener('click', function() {
+            const outputTextarea = panel.querySelector(`#output-textarea-${tabNumber}`);
+            
+            if (!outputTextarea || !outputTextarea.value.trim()) {
+                utils.showNotification('没有内容可复制', 'error');
+                return;
+            }
+            
+            copyTextToClipboard(outputTextarea.value.trim())
+                .then(success => {
+                    if (success) {
+                        utils.showNotification('已复制到剪贴板', 'success');
+                    } else {
+                        utils.showNotification('复制失败，请手动复制', 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('复制失败:', error);
+                    utils.showNotification('复制失败，请手动复制', 'error');
+                });
+        });
+    }
+    
+    // 为新面板的编辑按钮注册事件
+    const editButton = panel.querySelector(`#edit-btn-${tabNumber}`);
+    if (editButton) {
+        editButton.addEventListener('click', function() {
+            const outputTextarea = panel.querySelector(`#output-textarea-${tabNumber}`);
+            if (outputTextarea) {
+                outputTextarea.readOnly = false;
+                outputTextarea.classList.add('editable');
+                utils.showNotification('现在可以编辑生成结果', 'success');
+            }
+        });
+    }
+    
+    // 为输入框添加自动保存草稿功能
+    const inputTextarea = panel.querySelector(`#input-textarea-${tabNumber}`);
+    if (inputTextarea) {
+        inputTextarea.addEventListener('input', debounce(function() {
+            // 这里可以实现针对每个标签的单独草稿保存逻辑
+            // 为简化，目前使用统一的保存方法
+            saveDraft();
+        }, 1000));
     }
 }
 
@@ -424,45 +618,221 @@ function handleMenuItemClick(itemType) {
             currentItem.classList.add('active');
         }
         
-        // 根据不同的菜单项类型执行不同的操作
-        switch (itemType) {
-            case 'knowledge-base':
-                utils.showNotification('已切换到知识库管理', 'success');
-                // 可以在这里添加显示知识库管理面板的逻辑
-                break;
-            case 'conversation-records':
-                utils.showNotification('已切换到对话记录', 'success');
-                // 可以在这里添加显示对话记录面板的逻辑
-                loadRecentRecords();
-                break;
-            case 'upload-data':
-                utils.showNotification('已切换到数据上传', 'success');
-                // 可以在这里添加显示数据上传面板的逻辑
-                break;
-            case 'script-generator':
-                utils.showNotification('已切换到脚本生成器', 'success');
-                // 可以在这里添加显示脚本生成器面板的逻辑
-                break;
-            case 'optimization':
-                utils.showNotification('已切换到优化建议', 'success');
-                // 可以在这里添加显示优化建议面板的逻辑
-                break;
-            case 'batch-generate':
-                utils.showNotification('批量生成功能即将上线', 'info');
-                break;
-            case 'telegram-monitor':
-                utils.showNotification('Telegram监控功能即将上线', 'info');
-                break;
-            case 'api-config':
-                utils.showNotification('API配置功能即将上线', 'info');
-                break;
-            default:
-                utils.showNotification('功能切换成功', 'success');
-        }
+        // 切换功能面板
+        switchFunctionPanel(itemType);
+        
     } catch (error) {
         console.error(`处理菜单项 ${itemType} 点击时发生错误:`, error);
         utils.showNotification('功能切换失败', 'error');
     }
+}
+
+// 切换功能面板
+function switchFunctionPanel(panelType) {
+    // 获取主要内容区域
+    const mainContent = document.querySelector('main.content');
+    if (!mainContent) return;
+    
+    // 获取所有面板区域
+    const scriptGenerator = mainContent.querySelector('.script-generator');
+    const knowledgeBaseContainer = mainContent.querySelector('.knowledge-base-container');
+    const recentRecords = mainContent.querySelector('.recent-records');
+    const uploadDataSection = mainContent.querySelector('.upload-data-section');
+    const optimizationSection = mainContent.querySelector('.optimization-section');
+    
+    // 隐藏所有面板
+    if (scriptGenerator) scriptGenerator.style.display = 'none';
+    if (knowledgeBaseContainer) knowledgeBaseContainer.style.display = 'none';
+    if (recentRecords) recentRecords.style.display = 'none';
+    if (uploadDataSection) uploadDataSection.style.display = 'none';
+    if (optimizationSection) optimizationSection.style.display = 'none';
+    
+    // 显示对应面板
+    let success = false;
+    
+    switch (panelType) {
+        case 'knowledge-base':
+            if (knowledgeBaseContainer) {
+                knowledgeBaseContainer.style.display = 'block';
+                // 初始化知识库功能
+                if (window.knowledgeBase && typeof window.knowledgeBase.initKnowledgeBase === 'function') {
+                    window.knowledgeBase.initKnowledgeBase();
+                }
+                success = true;
+            }
+            break;
+        case 'conversation-records':
+            if (recentRecords) {
+                recentRecords.style.display = 'block';
+                loadRecentRecords();
+                success = true;
+            }
+            break;
+        case 'upload-data':
+            // 检查是否已有上传数据面板，如果没有则创建
+            if (!uploadDataSection) {
+                createUploadDataSection(mainContent);
+            } else {
+                uploadDataSection.style.display = 'block';
+            }
+            success = true;
+            break;
+        case 'script-generator':
+            if (scriptGenerator) {
+                scriptGenerator.style.display = 'block';
+                success = true;
+            }
+            break;
+        case 'optimization':
+            // 检查是否已有优化建议面板，如果没有则创建
+            if (!optimizationSection) {
+                createOptimizationSection(mainContent);
+            } else {
+                optimizationSection.style.display = 'block';
+            }
+            success = true;
+            break;
+        case 'batch-generate':
+            utils.showNotification('批量生成功能即将上线', 'info');
+            break;
+        case 'telegram-monitor':
+            utils.showNotification('Telegram监控功能即将上线', 'info');
+            break;
+        case 'api-config':
+            utils.showNotification('API配置功能即将上线', 'info');
+            break;
+    }
+    
+    if (success) {
+        utils.showNotification(`已切换到${getPanelDisplayName(panelType)}`, 'success');
+    }
+}
+
+// 获取面板显示名称
+function getPanelDisplayName(panelType) {
+    const nameMap = {
+        'knowledge-base': '知识库管理',
+        'conversation-records': '对话记录',
+        'upload-data': '数据上传',
+        'script-generator': '脚本生成器',
+        'optimization': '优化建议'
+    };
+    return nameMap[panelType] || panelType;
+}
+
+// 创建数据上传面板
+function createUploadDataSection(container) {
+    const uploadSection = document.createElement('section');
+    uploadSection.className = 'upload-data-section card';
+    uploadSection.innerHTML = `
+        <div class="card-header">
+            <h3 class="card-title">数据上传</h3>
+            <span class="card-badge badge-info">支持多种格式</span>
+        </div>
+        <div class="upload-content">
+            <p class="section-description">
+                上传文件到知识库，支持TXT、CSV、JSON、DOCX等格式（最大10MB）
+            </p>
+            <div class="upload-area">
+                <button id="file-upload-btn" class="upload-btn">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="17 8 12 3 7 8"></polyline>
+                        <line x1="12" y1="3" x2="12" y2="15"></line>
+                    </svg>
+                    <span>选择文件上传</span>
+                </button>
+                <input type="file" id="file-input" class="hidden" multiple accept=".txt,.csv,.json,.docx,.xlsx,.xls">
+            </div>
+            <div class="upload-format-info">
+                <h4>支持的文件格式：</h4>
+                <ul>
+                    <li><strong>TXT:</strong> 文本文档</li>
+                    <li><strong>CSV:</strong> 表格数据</li>
+                    <li><strong>JSON:</strong> 结构化数据</li>
+                    <li><strong>DOCX:</strong> Word文档</li>
+                    <li><strong>XLS/XLSX:</strong> Excel表格</li>
+                </ul>
+            </div>
+        </div>
+    `;
+    
+    container.appendChild(uploadSection);
+    
+    // 添加事件监听器
+    const fileUploadBtn = uploadSection.querySelector('#file-upload-btn');
+    const fileInput = uploadSection.querySelector('#file-input');
+    
+    if (fileUploadBtn && fileInput) {
+        fileUploadBtn.addEventListener('click', () => {
+            fileInput.click();
+        });
+        
+        fileInput.addEventListener('change', async (event) => {
+            if (window.knowledgeBase && typeof window.knowledgeBase.handleFileUpload === 'function') {
+                window.knowledgeBase.handleFileUpload(event);
+            }
+        });
+    }
+}
+
+// 创建优化建议面板
+function createOptimizationSection(container) {
+    const optimizationSection = document.createElement('section');
+    optimizationSection.className = 'optimization-section card';
+    optimizationSection.innerHTML = `
+        <div class="card-header">
+            <h3 class="card-title">优化建议</h3>
+            <span class="card-badge badge-primary">AI驱动</span>
+        </div>
+        <div class="optimization-content">
+            <p class="section-description">
+                根据您的使用习惯和生成历史，我们为您提供以下优化建议
+            </p>
+            <div class="optimization-tips">
+                <div class="tip-item">
+                    <div class="tip-icon">💡</div>
+                    <div class="tip-content">
+                        <h4>使用更具体的提示词</h4>
+                        <p>提供更详细的背景信息和场景描述，可以获得更精准的生成结果</p>
+                    </div>
+                </div>
+                <div class="tip-item">
+                    <div class="tip-icon">📚</div>
+                    <div class="tip-content">
+                        <h4>利用知识库提高准确性</h4>
+                        <p>上传相关文档到知识库，可以提高生成内容与您业务的相关性</p>
+                    </div>
+                </div>
+                <div class="tip-item">
+                    <div class="tip-icon">⚡</div>
+                    <div class="tip-content">
+                        <h4>尝试不同的AI模型</h4>
+                        <p>不同模型各有专长，可以根据需求选择最适合的模型</p>
+                    </div>
+                </div>
+            </div>
+            <div class="optimization-stats">
+                <h4>使用统计</h4>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-value">0</div>
+                        <div class="stat-label">本月生成次数</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">0%</div>
+                        <div class="stat-label">知识库使用率</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">0</div>
+                        <div class="stat-label">草稿保存数</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    container.appendChild(optimizationSection);
 }
 
 // 获取菜单项索引
@@ -512,7 +882,7 @@ async function handleGenerateClick() {
     
     try {
         // 获取当前设置
-        const settings = settingsManager.get();
+        const settings = storage.settingsManager.get();
         
         // 获取对话角色
         const characterRole = elements.selectedRole ? elements.selectedRole.value : '客服-用户';
@@ -589,7 +959,7 @@ async function handleGenerateClick() {
             
             // 保存到最近记录（包含知识库关联信息）
             const title = prompt.length > 50 ? prompt.substring(0, 50) + '...' : prompt;
-            recentRecordsManager.add({
+            storage.recentRecordsManager.add({
                 title,
                 content: result.content,
                 model: settings.selectedModel,
@@ -603,7 +973,7 @@ async function handleGenerateClick() {
             loadRecentRecords();
             
             // 清空自动保存的草稿
-            draftsManager.clear();
+            storage.draftsManager.clear();
             
             // 显示成功通知
             utils.showNotification('脚本生成成功！' + (usedKnowledgeBase ? ' 已使用知识库内容。' : ''), 'success');
@@ -648,6 +1018,7 @@ async function handleCopyClick() {
 
 // 设置模态框关闭事件
 function setupModalCloseEvent() {
+    // 文本知识模态框
     const closeButtons = getElements('.modal-close');
     const modal = getElement('#text-knowledge-modal');
     
@@ -664,6 +1035,310 @@ function setupModalCloseEvent() {
                 modal.style.display = 'none';
             }
         });
+    }
+    
+    // 由于Telegram模态框是动态创建的，其关闭逻辑在showTelegramConnectModal函数中实现
+    // 这里不需要额外的事件监听
+}
+
+// 显示Telegram连接模态框
+function showTelegramConnectModal() {
+    // 检查是否已存在模态框
+    if (document.getElementById('telegram-connect-modal')) {
+        return;
+    }
+    
+    // 创建模态框HTML
+    const modalHTML = `
+        <div id="telegram-connect-modal" class="modal-overlay">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>连接Telegram Bot</h3>
+                    <button class="close-button" onclick="hideTelegramConnectModal()">×</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="telegram-bot-key">Telegram Bot Key</label>
+                        <input type="text" id="telegram-bot-key" placeholder="请输入您的Bot Key" class="form-control">
+                        <small class="form-text text-muted">格式: 123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11</small>
+                    </div>
+                    <div id="telegram-status-info" class="mt-4 p-3 bg-gray-100 rounded-md hidden">
+                        <div id="telegram-connection-status" class="text-sm mb-2"></div>
+                        <div id="telegram-chat-ids" class="text-sm"></div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button id="reset-telegram-settings" class="btn btn-danger mr-auto">重置设置</button>
+                    <button id="cancel-telegram-connect" class="btn btn-secondary" onclick="hideTelegramConnectModal()">取消</button>
+                    <button id="confirm-telegram-connect" class="btn btn-primary">连接</button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // 添加到页面
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+    
+    // 添加样式
+    const style = document.createElement('style');
+    style.textContent = `
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .modal-content {
+            background-color: #fff;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+        .modal-header {
+            padding: 16px 24px;
+            border-bottom: 1px solid #e1e5e9;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .modal-header h3 {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 600;
+        }
+        .close-button {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #6c757d;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-body {
+            padding: 24px;
+        }
+        .modal-footer {
+            padding: 16px 24px;
+            border-top: 1px solid #e1e5e9;
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+        .form-control {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .form-control:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .btn-primary {
+            background-color: #3b82f6;
+            color: white;
+        }
+        .btn-primary:hover {
+            background-color: #2563eb;
+        }
+        .btn-secondary {
+            background-color: #6c757d;
+            color: white;
+        }
+        .btn-secondary:hover {
+            background-color: #5a6268;
+        }
+        .btn-danger {
+            background-color: #dc3545;
+            color: white;
+        }
+        .btn-danger:hover {
+            background-color: #c82333;
+        }
+        .btn-success {
+            background-color: #28a745;
+            color: white;
+        }
+        .btn-success:hover {
+            background-color: #218838;
+        }
+        .form-text {
+            display: block;
+            margin-top: 4px;
+            font-size: 12px;
+            color: #6c757d;
+        }
+        .hidden {
+            display: none;
+        }
+        .bg-gray-100 {
+            background-color: #f8f9fa;
+        }
+        .mt-4 {
+            margin-top: 16px;
+        }
+        .p-3 {
+            padding: 12px;
+        }
+        .mr-auto {
+            margin-right: auto;
+        }
+    `;
+    document.head.appendChild(style);
+    
+    // 绑定连接按钮点击事件
+    document.getElementById('confirm-telegram-connect').addEventListener('click', connectToTelegram);
+    
+    // 绑定重置设置按钮点击事件
+    document.getElementById('reset-telegram-settings').addEventListener('click', function() {
+        if (confirm('确定要重置所有Telegram设置吗？这将删除已保存的Bot Key和连接信息。')) {
+            window.telegramIntegration.resetSettings();
+            document.getElementById('telegram-bot-key').value = '';
+            updateTelegramConnectionStatus(false);
+        }
+    });
+    
+    // 显示当前连接状态
+    const statusInfo = document.getElementById('telegram-status-info');
+    const connectionStatus = document.getElementById('telegram-connection-status');
+    const chatIdsElem = document.getElementById('telegram-chat-ids');
+    
+    const telegramStatus = window.telegramIntegration.getConnectionStatus();
+    if (telegramStatus.botKey) {
+        // 显示部分Bot Key（保护隐私）
+        const maskedBotKey = telegramStatus.botKey.substring(0, 4) + '••••••' + telegramStatus.botKey.substring(telegramStatus.botKey.length - 4);
+        connectionStatus.textContent = `当前状态: ${telegramStatus.isConnected ? '已连接' : '未连接'} | Bot Key: ${maskedBotKey}`;
+        
+        // 显示聊天ID列表
+        if (telegramStatus.chatIds && telegramStatus.chatIds.length > 0) {
+            chatIdsElem.textContent = `已保存的聊天ID: ${telegramStatus.chatIds.join(', ')}`;
+        }
+        
+        statusInfo.classList.remove('hidden');
+    }
+    
+    // 绑定ESC键关闭模态框
+    document.addEventListener('keydown', function handleEscKey(e) {
+        if (e.key === 'Escape') {
+            hideTelegramConnectModal();
+            document.removeEventListener('keydown', handleEscKey);
+        }
+    });
+}
+
+// 隐藏Telegram连接模态框
+function hideTelegramConnectModal() {
+    const modal = document.getElementById('telegram-connect-modal');
+    if (modal) {
+        modal.remove();
+    }
+    
+    // 移除样式
+    const styles = document.head.querySelectorAll('style');
+    styles.forEach(style => {
+        if (style.textContent.includes('.modal-overlay')) {
+            style.remove();
+        }
+    });
+}
+
+// 处理Telegram连接按钮点击
+function handleTelegramConnectClick() {
+    showTelegramConnectModal();
+}
+
+// 连接到Telegram Bot
+function connectToTelegram() {
+    const botKeyInput = document.getElementById('telegram-bot-key');
+    const botKey = botKeyInput.value.trim();
+    
+    if (!botKey) {
+        utils.showNotification('请输入Bot Key', 'error');
+        return;
+    }
+    
+    // 禁用按钮防止重复提交
+    const connectButton = document.getElementById('confirm-telegram-connect');
+    connectButton.disabled = true;
+    connectButton.textContent = '连接中...';
+    
+    // 调用telegramIntegration模块进行连接
+    window.telegramIntegration.connectBot(botKey)
+        .then(() => {
+            // 连接成功，隐藏模态框
+            hideTelegramConnectModal();
+            // 更新UI状态
+            updateTelegramConnectionStatus(true);
+        })
+        .catch(error => {
+            // 连接失败，显示错误信息
+            utils.showNotification('连接失败: ' + error.message, 'error');
+            // 恢复按钮状态
+            connectButton.disabled = false;
+            connectButton.textContent = '连接';
+        });
+}
+
+// 更新Telegram连接状态UI
+function updateTelegramConnectionStatus(isConnected) {
+    const connectButton = document.getElementById('telegram-connect-btn');
+    
+    if (connectButton) {
+        if (isConnected) {
+            connectButton.textContent = '已连接';
+            connectButton.classList.add('btn-success');
+            connectButton.classList.remove('btn-primary');
+        } else {
+            connectButton.textContent = '连接';
+            connectButton.classList.add('btn-primary');
+            connectButton.classList.remove('btn-success');
+        }
+    }
+    
+    // 如果有监控按钮，也更新其状态
+    const monitorButton = document.getElementById('telegram-monitor-btn');
+    if (monitorButton) {
+        monitorButton.disabled = !isConnected;
+    }
+    
+    // 更新侧边栏Telegram监控菜单项状态
+    const telegramMonitorMenuItem = document.querySelector('[data-menu-item="telegram-monitor"]');
+    if (telegramMonitorMenuItem) {
+        if (isConnected) {
+            telegramMonitorMenuItem.classList.remove('menu-item-disabled');
+        } else {
+            telegramMonitorMenuItem.classList.add('menu-item-disabled');
+        }
     }
 }
 
@@ -695,7 +1370,7 @@ function handleEditClick() {
 function loadRecentRecords() {
     if (!elements.recentRecordsContainer) return;
     
-    const records = recentRecordsManager.get();
+    const records = storage.recentRecordsManager.get();
     
     // 清空容器
     elements.recentRecordsContainer.innerHTML = '';
@@ -790,7 +1465,7 @@ function createRecordItem(record) {
 // 加载记录
 function loadRecord(recordId) {
     try {
-        const records = recentRecordsManager.get();
+        const records = storage.recentRecordsManager.get();
         const record = records.find(r => r.id === recordId);
         
         if (record && elements.outputTextarea && elements.selectedModel && elements.selectedStyle && elements.selectedLength) {
@@ -824,7 +1499,7 @@ function loadRecord(recordId) {
 // 删除记录
 function deleteRecord(recordId) {
     if (confirm('确定要删除这条记录吗？')) {
-        const success = recentRecordsManager.remove(recordId);
+        const success = storage.recentRecordsManager.remove(recordId);
         
         if (success) {
             loadRecentRecords();
@@ -838,7 +1513,7 @@ function deleteRecord(recordId) {
 // 清空所有记录
 function handleClearRecords() {
     if (confirm('确定要清空所有最近记录吗？此操作不可恢复。')) {
-        const success = recentRecordsManager.clear();
+        const success = storage.recentRecordsManager.clear();
         
         if (success) {
             loadRecentRecords();
@@ -853,7 +1528,7 @@ function handleClearRecords() {
 function handleClearDrafts() {
     if (confirm('确定要清空所有草稿吗？此操作不可恢复。')) {
         try {
-            draftsManager.clear();
+            storage.draftsManager.clear();
             utils.showNotification('所有草稿已清空', 'success');
         } catch (error) {
             console.error('清空草稿时发生错误:', error);
@@ -867,11 +1542,11 @@ function updateStats(options = {}) {
     if (!elements.statValues || elements.statValues.length === 0) return;
     
     try {
-        let stats = statsManager.get();
+        let stats = storage.statsManager.get();
         
         // 如果提供了新的生成时间和知识库使用情况，更新统计
         if (options.generationTime !== undefined) {
-            stats = statsManager.updateWithNewGeneration(options.generationTime, options.knowledgeUsed);
+            stats = storage.statsManager.updateWithNewGeneration(options.generationTime, options.knowledgeUsed);
         }
         
         // 确保有足够的元素显示所有统计数据
@@ -882,7 +1557,7 @@ function updateStats(options = {}) {
             elements.statValues[3].textContent = (stats.knowledgeUtilization || 0).toFixed(1) + '%';
             
             // 获取实际草稿数量
-            const drafts = draftsManager.get();
+            const drafts = storage.draftsManager.get();
             elements.statValues[4].textContent = drafts.length || 0;
         } else if (elements.statValues.length >= 4) {
             // 如果只有4个统计项，用知识库利用率替换草稿数
@@ -929,7 +1604,7 @@ function escapeHtml(text) {
 // 复制记录内容
 function copyRecord(recordId) {
     try {
-        const records = recentRecordsManager.get();
+        const records = storage.recentRecordsManager.get();
         const record = records.find(r => r.id === recordId);
         
         if (record) {
@@ -945,7 +1620,7 @@ function copyRecord(recordId) {
         }
     } catch (error) {
         console.error('复制记录时发生错误:', error);
-        showNotification('复制失败，请手动复制', 'error');
+        utils.showNotification('复制失败，请手动复制', 'error');
     }
 }
 
@@ -957,7 +1632,7 @@ function saveDraft() {
     
     if (content) {
         try {
-            draftsManager.save(content);
+            storage.draftsManager.save(content);
         } catch (error) {
             console.error('保存草稿时发生错误:', error);
         }
@@ -969,7 +1644,7 @@ function loadDraft() {
     if (!elements.inputTextarea) return;
     
     try {
-        const drafts = draftsManager.get();
+        const drafts = storage.draftsManager.get();
         
         // 获取最新的草稿
         if (drafts.length > 0) {
@@ -1073,7 +1748,7 @@ function filterRecordsByKnowledge(filterType) {
         
         try {
             // 获取记录详情
-            const records = recentRecordsManager.get();
+            const records = storage.recentRecordsManager.get();
             const record = records.find(r => r.id === recordId);
             
             // 根据筛选类型决定显示或隐藏

@@ -5,12 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="话术工具 - 智能对话脚本生成系统，支持多种AI模型、对话风格和知识库增强功能，适用于客服、销售、教育等多种场景。">
     <title>话术工具 - 智能对话脚本生成系统</title>
-    <link rel="stylesheet" href="css/style.css">
-    <link rel="stylesheet" href="css/knowledge-integration.css">
+    <link rel="stylesheet" href="css/optimized-styles.css">
+        <link rel="stylesheet" href="css/knowledge-integration.css">
+        <link rel="stylesheet" href="css/tabs.css">
 </head>
 <body>
     <!-- 导航栏 -->
-    <nav class="navbar">
+    <header class="navbar">
         <div class="logo">
             <div class="logo-icon">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
@@ -21,15 +22,15 @@
             </div>
             <span>话术工具</span>
         </div>
-        <div class="nav-buttons">
-            <button class="btn btn-secondary">
+        <nav class="nav-buttons">
+            <button class="btn btn-secondary" id="settings-btn">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <circle cx="12" cy="12" r="3"></circle>
                     <path d="M12 1v6m0 6v6m4.22-13.22l4.24 4.24M1.54 1.54l4.24 4.24M20.46 20.46l-4.24-4.24M1.54 20.46l4.24-4.24"></path>
                 </svg>
                 设置
             </button>
-            <button class="btn btn-primary">
+            <button class="btn btn-primary" id="new-conversation-btn">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
                     <polyline points="14 2 14 8 20 8"></polyline>
@@ -38,15 +39,21 @@
                 </svg>
                 新建对话
             </button>
-        </div>
-    </nav>
+        </nav>
+    </header>
 
     <div class="container">
-        <!-- 侧边栏 -->
-        <aside class="sidebar">
-            <div class="sidebar-section">
-                <div class="section-title">数据管理</div>
-                <div class="menu-item active" data-menu-item="knowledge-base">
+        <!-- 左侧功能键 -->
+        <aside class="left-panel">
+            <section class="panel-section">
+                <h3 class="section-title">功能导航</h3>
+                <div class="menu-item active" data-menu-item="script-generator">
+                    <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 2L2 7L12 12L22 7L12 2Z"></path>
+                    </svg>
+                    脚本生成
+                </div>
+                <div class="menu-item" data-menu-item="knowledge-base">
                     <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
                     </svg>
@@ -67,16 +74,10 @@
                     </svg>
                     上传数据
                 </div>
-            </div>
+            </section>
 
-            <div class="sidebar-section">
-                <div class="section-title">生成器</div>
-                <div class="menu-item" data-menu-item="script-generator">
-                    <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M12 2L2 7L12 12L22 7L12 2Z"></path>
-                    </svg>
-                    脚本生成
-                </div>
+            <section class="panel-section">
+                <h3 class="section-title">高级功能</h3>
                 <div class="menu-item" data-menu-item="optimization">
                     <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
@@ -91,43 +92,37 @@
                     </svg>
                     批量生成
                 </div>
-            </div>
-
-            <div class="sidebar-section">
-                <div class="section-title">集成</div>
-                <div class="menu-item" data-menu-item="telegram-monitor">
-                    <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M23 3a10.9 10.9 0 0 1-3.14 1.53 4.48 4.48 0 0 0-7.86 3v1A10.66 10.66 0 0 1 3 4s-4 9 5 13a11.64 11.64 0 0 1-7 2c9 5 20 0 20-11.5a4.5 4.5 0 0 0-.08-.83A7.72 7.72 0 0 0 23 3z"></path>
-                    </svg>
-                    Telegram监控
-                </div>
-                <div class="menu-item" data-menu-item="api-config">
-                    <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
-                        <polyline points="22,6 12,13 2,6"></polyline>
-                    </svg>
-                    API配置
-                </div>
-            </div>
+            </section>
         </aside>
 
-        <!-- 主内容区 -->
-        <main class="main-content">
-            <div class="toolbar">
-                <div class="search-bar">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="11" cy="11" r="8"></circle>
-                        <path d="m21 21-4.35-4.35"></path>
-                    </svg>
-                    <input type="text" class="search-input" placeholder="搜索知识库或对话记录...">
-                </div>
-                <div class="status-indicator">
-                    <span class="status-dot online"></span>
-                    <span style="font-size: 0.875rem;">AI模型已就绪</span>
+        <!-- 中间内容区域 -->
+        <main class="center-content">
+            <!-- 对话标签容器 -->
+            <div class="conversation-tabs" id="conversation-tabs">
+                <div class="conversation-tab active" data-tab="1">
+                    <span class="tab-number">1</span>
+                    对话 1
                 </div>
             </div>
+            <!-- 对话容器 -->
+            <div class="conversation-container" id="conversation-container">
+                <!-- 对话面板 1 -->
+                <div class="conversation-panel" data-panel="1">
+                    <div class="toolbar">
+                        <div class="search-bar">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="11" cy="11" r="8"></circle>
+                                <path d="m21 21-4.35-4.35"></path>
+                            </svg>
+                            <input type="text" class="search-input" placeholder="搜索知识库或对话记录...">
+                        </div>
+                        <div class="status-indicator">
+                            <span class="status-dot online"></span>
+                            <span class="status-text">AI模型已就绪</span>
+                        </div>
+                    </div>
 
-            <div class="content-area">
+                    <div class="content-area">
                 <!-- 统计面板 -->
                 <div class="stats-grid">
                     <div class="stat-card">
@@ -149,13 +144,13 @@
                 </div>
 
                 <!-- 脚本生成器 -->
-                <div class="script-generator">
+                <section class="script-generator">
                     <div class="input-section">
                         <div class="card-header">
                             <h3 class="card-title">输入上下文</h3>
                             <span class="card-badge badge-warning">待处理</span>
                         </div>
-                        <p style="color: var(--text-secondary); font-size: 0.875rem; margin-bottom: 1rem;">
+                        <p class="section-description">
                             请输入对话的背景信息、场景描述或历史对话，AI将基于这些内容生成合适的对话脚本。
                         </p>
                         <div class="textarea-container">
@@ -184,7 +179,7 @@
                             <h3 class="card-title">生成结果</h3>
                             <span class="card-badge badge-success">已完成</span>
                         </div>
-                        <p style="color: var(--text-secondary); font-size: 0.875rem; margin-bottom: 1rem;">
+                        <p class="section-description">
                             AI生成的对话脚本将显示在这里，可以直接复制使用或进行二次编辑。
                         </p>
                         <div class="textarea-container">
@@ -216,11 +211,11 @@
                             </button>
                         </div>
                     </div>
-                </div>
+                </section>
 
                 <!-- 最近生成记录 -->
-                <div class="recent-records">
-                    <div class="card-actions" style="margin-top: 0.5rem; margin-bottom: 1rem;">
+                <section class="recent-records">
+                    <div class="card-actions">
                         <button id="clear-records-btn" class="btn btn-sm btn-secondary">
                             清空记录
                         </button>
@@ -249,91 +244,84 @@
                             <span>准确率: 94%</span>
                         </div>
                     </div>
+                </section>
+            </div>
+                    </div>
                 </div>
             </div>
         </main>
 
-        <!-- 右侧面板 -->
-        <aside class="right-panel">
-            <div class="telegram-integration">
-                <div class="integration-header">
-                    <div class="integration-icon">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
-                            <path d="M20.66 10.96c-.84.44-1.76.71-2.72.81l-1.07-.95c.18-.56.29-1.13.29-1.71 0-2.08-1.68-3.76-3.76-3.76-.58 0-1.15.11-1.65.31L11.1 3.8a4.64 4.64 0 0 1 1.89 3.65c0 .29-.03.57-.08.84l-1.67.87c-.12-.35-.27-.69-.46-1.01l.92-1.74-1.4-.23a.48.48 0 0 0-.53.28l-1.1 1.83-.24-1.41c-.05-.29-.24-.54-.51-.68l-1.5-1A4.62 4.62 0 0 1 9.3 7.1c0 1.36.56 2.58 1.46 3.48l-1.4 1.27c-.32-.08-.63-.12-.96-.12-1.06 0-2.06.34-2.9.9l-.37 1.95c1.39.47 2.87.72 4.4 0l1.74-.73c.65.96 1.57 1.74 2.63 2.26l.85 1.63c-1.1.35-2.25.54-3.43.54-.22 0-.44-.01-.66-.02l-.37 1.95c1.55.5 3.16.75 4.81.75 4.97 0 9-4.03 9-9 0-.69-.08-1.36-.23-2.02l-1.11.49z"/>
-                        </svg>
+        <!-- 右侧设置面板 -->
+        <aside class="right-settings-panel">
+            <div class="settings-container">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">生成设置</h3>
                     </div>
-                    <h3 class="card-title">Telegram集成</h3>
-                </div>
-                <p style="font-size: 0.875rem; color: var(--text-secondary); margin-bottom: 1rem;">
-                    将生成的对话脚本自动同步到Telegram群组，实时监控对话效果。
-                </p>
-                <button class="btn btn-primary action-btn telegram-connect" style="width: 100%;">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M23 3a10.9 10.9 0 0 1-3.14 1.53 4.48 4.48 0 0 0-7.86 3v1A10.66 10.66 0 0 1 3 4s-4 9 5 13a11.64 11.64 0 0 1-7 2c9 5 20 0 20-11.5a4.5 4.5 0 0 0-.08-.83A7.72 7.72 0 0 0 23 3z"></path>
-                    </svg>
-                    连接Telegram账号
-                </button>
-            </div>
-
-            <div class="card">
-                <div class="card-header">
-                    <h3 class="card-title">生成设置</h3>
-                </div>
-                <div style="margin-bottom: 1rem;">
-                    <label style="display: block; font-size: 0.875rem; margin-bottom: 0.5rem; color: var(--text-secondary);">
-                        AI模型选择
-                    </label>
-                    <select id="model-select" name="model" style="width: 100%; padding: 0.75rem; border-radius: 8px; background: var(--bg-tertiary); border: 1px solid var(--border-color); color: var(--text-primary);">
-                        <option>GPT-4</option>
-                        <option selected>GPT-3.5 Turbo</option>
-                        <option>Claude 2</option>
+                    <div class="form-group">
+                        <label for="model-select">AI模型选择</label>
+                    <select id="model-select" name="model" class="form-select">
+                        <option value="gpt-4-turbo-investment" selected>GPT-4 Turbo 金融版</option>
+                        <option value="gpt-3.5-investment">GPT-3.5 投资助手</option>
+                        <option value="finance-pro">Finance Pro</option>
+                        <option value="stock-analyst">Stock Analyst</option>
+                        <option value="market-insight">Market Insight</option>
+                        <option value="investment-advisor">Investment Advisor</option>
+                        <option value="wealth-manager">Wealth Manager</option>
                     </select>
                 </div>
-                <div style="margin-bottom: 1rem;">
-                    <label style="display: block; font-size: 0.875rem; margin-bottom: 0.5rem; color: var(--text-secondary);">
-                        对话角色
-                    </label>
-                    <select id="role-select" name="role" style="width: 100%; padding: 0.75rem; border-radius: 8px; background: var(--bg-tertiary); border: 1px solid var(--border-color); color: var(--text-primary);">
-                        <option value="客服-用户">客服-用户</option>
-                        <option value="老师-学生">老师-学生</option>
-                        <option value="医生-患者">医生-患者</option>
-                        <option value="销售-客户">销售-客户</option>
+                <div class="form-group">
+                    <label for="role-select">对话角色</label>
+                    <select id="role-select" name="role" class="form-select">
+                        <option value="分析师-投资者">分析师-投资者</option>
+                        <option value="资深股民-新手">资深股民-新手</option>
+                        <option value="基金经理-客户">基金经理-客户</option>
+                        <option value="投资顾问-咨询者">投资顾问-咨询者</option>
+                        <option value="技术高手-学习者">技术高手-学习者</option>
+                        <option value="价值投资者-讨论者">价值投资者-讨论者</option>
+                        <option value="短线交易者-交流者">短线交易者-交流者</option>
+                        <option value="行业专家-关注者">行业专家-关注者</option>
+                        <option value="量化分析员-实践者">量化分析员-实践者</option>
+                        <option value="财经媒体人-读者">财经媒体人-读者</option>
+                        <option value="股票推荐者-跟随者">股票推荐者-跟随者</option>
+                        <option value="市场评论员-听众">市场评论员-听众</option>
                     </select>
                 </div>
-                <div style="margin-bottom: 1rem;">
-                    <label style="display: block; font-size: 0.875rem; margin-bottom: 0.5rem; color: var(--text-secondary);">
-                        对话风格
-                    </label>
-                    <select id="style-select" name="style" style="width: 100%; padding: 0.75rem; border-radius: 8px; background: var(--bg-tertiary); border: 1px solid var(--border-color); color: var(--text-primary);">
-                        <option value="professional">正式专业</option>
-                        <option value="friendly">轻松活泼</option>
-                        <option value="persuasive">简洁明了</option>
-                        <option value="detailed">详细周到</option>
+                <div class="form-group">
+                    <label for="style-select">对话风格</label>
+                    <select id="style-select" name="style" class="form-select">
+                        <option value="专业分析">专业分析</option>
+                        <option value="热情分享">热情分享</option>
+                        <option value="轻松交流">轻松交流</option>
+                        <option value="深度推荐">深度推荐</option>
+                        <option value="共鸣理解">共鸣理解</option>
+                        <option value="技术派交流">技术派交流</option>
+                        <option value="基本面分析">基本面分析</option>
+                        <option value="风险提示">风险提示</option>
+                        <option value="价值投资">价值投资</option>
+                        <option value="量化分析">量化分析</option>
                     </select>
                 </div>
-                <div>
-                    <label style="display: block; font-size: 0.875rem; margin-bottom: 0.5rem; color: var(--text-secondary);">
-                        对话长度
-                    </label>
-                    <div style="display: flex; align-items: center; gap: 1rem;">
-                        <span style="font-size: 0.75rem;">短</span>
-                        <input id="length-select" type="range" name="length" min="1" max="10" value="5" style="flex: 1; accent-color: var(--accent-blue);">
-                        <span style="font-size: 0.75rem;">长</span>
-                    </div>
+                <div class="form-group">
+                    <label for="length-select">对话长度</label>
+                    <select id="length-select" name="length" class="form-select">
+                        <option value="short">简短对话 (3-5轮)</option>
+                        <option value="medium">中等对话 (6-8轮)</option>
+                        <option value="long">深度对话 (9-12轮)</option>
+                        <option value="very-long">详尽对话 (13-16轮)</option>
+                        <option value="custom">定制 (可自定义轮次)</option>
+                    </select>
+                </div>
+                <div id="custom-length-container" class="form-group" style="display: none;">
+                    <label for="custom-length-input">自定义轮次</label>
+                    <input id="custom-length-input" type="number" name="custom-length" min="1" max="50" value="20" class="form-control">
                 </div>
             </div>
         </aside>
     </div>
 
-    <!-- 按照正确顺序加载所有JavaScript文件 -->
-    <script src="js/utils.js"></script>
-    <script src="js/storage.js"></script>
-    <script src="js/scriptGenerator.js"></script>
-    <script src="js/knowledgeBase.js"></script>
-    <script src="js/main.js"></script>
-    
     <!-- 知识库管理模块 -->
-    <div class="knowledge-base-container">
+    <section class="knowledge-base-container">
         <div class="knowledge-base-header">
             <h2>知识库管理</h2>
             <div class="knowledge-base-actions">
@@ -361,10 +349,10 @@
         <div class="knowledge-items-container">
             <!-- 知识库项目会通过JS动态加载 -->
         </div>
-    </div>
+    </section>
     
     <!-- 添加文本知识模态框 -->
-    <div id="text-knowledge-modal" class="modal" style="display: none;">
+    <div id="text-knowledge-modal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
                 <h3>添加文本知识</h3>
@@ -392,5 +380,37 @@
             </div>
         </div>
     </div>
+
+    <!-- 按照正确顺序加载所有JavaScript文件 -->
+    <script src="js/utils.js"></script>
+    <script src="js/chunkingOptimizer.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/telegramIntegration.js"></script>
+    <script src="js/scriptGenerator.js"></script>
+    <script src="js/knowledgeBase.js"></script>
+    <script src="js/main.js"></script>
+    
+    <!-- 处理自定义轮次输入框的显示/隐藏逻辑 -->
+    <script>
+        // 获取元素
+        const lengthSelect = document.getElementById('length-select');
+        const customLengthContainer = document.getElementById('custom-length-container');
+        
+        // 初始化检查
+        function checkLengthSelection() {
+            if (lengthSelect.value === 'custom') {
+                customLengthContainer.style.display = 'block';
+            } else {
+                customLengthContainer.style.display = 'none';
+            }
+        }
+        
+        // 添加事件监听器
+        if (lengthSelect && customLengthContainer) {
+            lengthSelect.addEventListener('change', checkLengthSelection);
+            // 初始化时检查一次
+            checkLengthSelection();
+        }
+    </script>
 </body>
 </html>

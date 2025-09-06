@@ -118,10 +118,80 @@ utils.readFileContent = function(file) {
         } else if (file.type.includes('spreadsheet') || file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
             // 对于Excel文件，这里只是简单处理，实际项目中可能需要专门的库
             reader.readAsArrayBuffer(file);
+        } else if (file.type.includes('wordprocessingml.document') || file.name.endsWith('.docx')) {
+            // 对于docx文件，使用ArrayBuffer读取
+            reader.readAsArrayBuffer(file);
         } else {
             reject(new Error('不支持的文件类型'));
         }
     });
+};
+
+// 简化的docx文件解析函数
+utils.parseDocx = function(arrayBuffer) {
+    // 这是一个简化的docx解析实现，仅用于提取文本内容
+    // 在实际项目中，可能需要使用专门的库来更完整地解析docx文件
+    
+    try {
+        // 将ArrayBuffer转换为二进制字符串
+        let binary = '';
+        const bytes = new Uint8Array(arrayBuffer);
+        const length = bytes.byteLength;
+        for (let i = 0; i < length; i++) {
+            binary += String.fromCharCode(bytes[i]);
+        }
+        
+        // 尝试提取文档内容（简化版实现）
+        // 注意：这只是一个基本的文本提取，不处理格式和复杂结构
+        let textContent = '';
+        
+        // 查找document.xml内容的起始和结束位置
+        const startTag = '<w:t';
+        const endTag = '</w:t>';
+        let startIndex = binary.indexOf(startTag);
+        
+        while (startIndex !== -1) {
+            // 查找起始标签的结束
+            const tagEndIndex = binary.indexOf('>', startIndex);
+            if (tagEndIndex === -1) break;
+            
+            // 查找内容的结束标签
+            const contentEndIndex = binary.indexOf(endTag, tagEndIndex);
+            if (contentEndIndex === -1) break;
+            
+            // 提取内容
+            const content = binary.substring(tagEndIndex + 1, contentEndIndex);
+            
+            // 简单解码HTML实体
+            const decodedContent = content
+                .replace(/&lt;/g, '<')
+                .replace(/&gt;/g, '>')
+                .replace(/&amp;/g, '&')
+                .replace(/&quot;/g, '"')
+                .replace(/&#39;/g, "'");
+            
+            textContent += decodedContent + '\n';
+            
+            // 查找下一个文本标签
+            startIndex = binary.indexOf(startTag, contentEndIndex + endTag.length);
+        }
+        
+        // 如果没有找到文本内容，返回提示信息
+        if (!textContent.trim()) {
+            textContent = 'DOCX文档内容（使用简化解析，可能不完整）';
+        }
+        
+        return textContent;
+    } catch (error) {
+        console.error('解析DOCX文件失败:', error);
+        return 'DOCX文件解析失败，这可能是一个复杂的文档。';
+    }
+};
+
+// 验证文件大小
+utils.validateFileSize = function(file, maxSizeMB = 10) { // 增加文件大小限制到10MB
+    const maxSizeBytes = maxSizeMB * 1024 * 1024;
+    return file.size <= maxSizeBytes;
 };
 
 // 解析CSV文件
@@ -184,7 +254,8 @@ utils.SUPPORTED_FILE_TYPES = [
     { type: 'application/json', extension: '.json', name: 'JSON文件' },
     { type: 'text/csv', extension: '.csv', name: 'CSV文件' },
     { type: 'application/vnd.ms-excel', extension: '.xls', name: 'Excel 97-2003' },
-    { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', extension: '.xlsx', name: 'Excel' }
+    { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', extension: '.xlsx', name: 'Excel' },
+    { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', extension: '.docx', name: 'Word文档' }
 ];
 
 // 随机生成唯一ID

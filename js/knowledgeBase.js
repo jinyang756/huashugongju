@@ -9,11 +9,14 @@ const knowledgeBase = window.knowledgeBase = window.knowledgeBase || {};
 // 获取工具函数
 const { showNotification, readFileContent, parseCSV, extractTextSummary, validateFileSize } = window.utils || {};
 const { knowledgeBaseManager } = window.storage || {};
+// 直接使用全局的chunkingOptimizer，避免重复声明
+const chunkingUtil = window.chunkingOptimizer || {};
 
 // 将工具函数挂载到knowledgeBase对象
 knowledgeBase.showNotification = showNotification;
 knowledgeBase.readFileContent = readFileContent;
 knowledgeBase.parseCSV = parseCSV;
+knowledgeBase.parseDocx = window.utils.parseDocx;  // 从utils引入parseDocx函数
 knowledgeBase.extractTextSummary = extractTextSummary;
 knowledgeBase.validateFileSize = validateFileSize;
 
@@ -129,10 +132,27 @@ knowledgeBase.registerEventListeners = function() {
                 } else if (file.name.endsWith('.txt')) {
                     processedContent = content;
                     itemType = 'text';
-            } else if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
-                // Excel文件处理（简化版）
-                processedContent = 'Excel文件内容（需要专门的库解析）';
-                itemType = 'spreadsheet';
+                } else if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
+                    // Excel文件处理（简化版）
+                    processedContent = 'Excel文件内容（需要专门的库解析）';
+                    itemType = 'spreadsheet';
+                } else if (file.name.endsWith('.docx')) {
+                    // 使用ArrayBuffer解析DOCX文件
+                    if (content instanceof ArrayBuffer) {
+                        processedContent = knowledgeBase.parseDocx(content);
+                        itemType = 'document';
+                    } else {
+                        processedContent = 'DOCX文件内容解析失败';
+                        itemType = 'document';
+                    }
+                }
+            
+            // 如果内容较长，进行文档分块
+            let chunks = [];
+            if (processedContent.length > 1000) {
+                // 智能选择分块方法
+                chunks = chunkingUtil.smartChunking(processedContent);
+            console.log(`文件 ${file.name} 已分块`, chunkingUtil.getChunkStatistics(chunks));
             }
             
             // 添加到知识库
@@ -141,7 +161,8 @@ knowledgeBase.registerEventListeners = function() {
                 content: processedContent,
                 type: itemType,
                 source: 'upload',
-                tags: knowledgeBase.extractTagsFromFileName(file.name)
+                tags: knowledgeBase.extractTagsFromFileName(file.name),
+                chunks: chunks.length > 0 ? chunks : undefined
             });
             
             if (success) {
@@ -176,7 +197,7 @@ knowledgeBase.extractTagsFromFileName = function(fileName) {
 // 处理知识库搜索
     knowledgeBase.handleKnowledgeSearch = function(event) {
         const query = event.target.value.trim();
-        const searchResults = knowledgeBaseManager.search(query);
+        const searchResults = storage.knowledgeBaseManager.search(query);
         knowledgeBase.renderKnowledgeItems(searchResults);
     }
 
@@ -312,7 +333,7 @@ knowledgeBase.editKnowledgeItem = function(item) {
 // 删除知识库项目
     knowledgeBase.deleteKnowledgeItem = function(id) {
         if (confirm('确定要删除这个知识库项目吗？')) {
-            const success = knowledgeBaseManager.remove(id);
+            const success = storage.knowledgeBaseManager.remove(id);
             if (success) {
                 knowledgeBase.showNotification('项目已删除', 'success');
                 knowledgeBase.loadKnowledgeItems(); // 重新加载列表
@@ -357,13 +378,22 @@ knowledgeBase.editKnowledgeItem = function(item) {
         // 处理标签
         const tags = tagsInput ? tagsInput.split(',').map(tag => tag.trim()) : [];
         
+        // 如果内容较长，进行文档分块
+        let chunks = [];
+        if (content.length > 1000) {
+            // 智能选择分块方法
+            chunks = chunkingUtil.smartChunking(content);
+        console.log(`文本知识已分块`, chunkingUtil.getChunkStatistics(chunks));
+        }
+        
         // 添加到知识库
-        const success = knowledgeBaseManager.add({
+        const success = storage.knowledgeBaseManager.add({
             title,
             content,
             type: 'text',
             source: 'manual',
-            tags
+            tags,
+            chunks: chunks.length > 0 ? chunks : undefined
         });
         
         if (success) {
@@ -377,14 +407,49 @@ knowledgeBase.editKnowledgeItem = function(item) {
 
     // 从知识库检索相关内容（用于AI生成时提供上下文）
     knowledgeBase.retrieveKnowledge = function(query, maxItems = 3) {
-        const searchResults = knowledgeBaseManager.search(query);
-        // 返回前几个相关的知识库项目
-        return searchResults.slice(0, maxItems).map(item => ({
-            id: item.id,
-            title: item.title,
-            content: item.content,
-            relevance: knowledgeBase.calculateRelevance(query, item.content)
-        }));
+        // 检索前优化查询
+        const optimizedQuery = chunkingUtil.optimizeQuery(query);
+        console.log(`原始查询: "${query}" -> 优化后查询: "${optimizedQuery}"`);
+        
+        // 先进行全局搜索
+        const globalResults = storage.knowledgeBaseManager.search(optimizedQuery);
+        
+        // 对每个结果进行更精确的相关性计算
+        const scoredResults = globalResults.map(item => {
+            // 如果有分块，对每个分块计算相关性并取最高值
+            if (item.chunks && item.chunks.length > 0) {
+                const chunkRelevances = item.chunks.map(chunk => ({
+                    relevance: knowledgeBase.calculateRelevance(optimizedQuery, chunk),
+                    chunk: chunk
+                }));
+                
+                // 找到最相关的分块
+                const mostRelevantChunk = chunkRelevances.reduce((max, current) => 
+                    current.relevance > max.relevance ? current : max
+                , chunkRelevances[0]);
+                
+                return {
+                    id: item.id,
+                    title: item.title,
+                    content: item.content,
+                    relevance: mostRelevantChunk.relevance,
+                    mostRelevantChunk: mostRelevantChunk.chunk
+                };
+            }
+            
+            // 如果没有分块，直接计算整个内容的相关性
+            return {
+                id: item.id,
+                title: item.title,
+                content: item.content,
+                relevance: knowledgeBase.calculateRelevance(optimizedQuery, item.content)
+            };
+        });
+        
+        // 按相关性排序并返回前几个结果
+        return scoredResults
+            .sort((a, b) => b.relevance - a.relevance)
+            .slice(0, maxItems);
     }
 
 // 计算相关性（简单实现）
