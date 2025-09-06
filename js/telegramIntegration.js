@@ -14,15 +14,29 @@ window.telegramIntegration = {
                 return;
             }
 
-            // 保存Bot Token
-            storage.telegramSettingsManager.setBotKey(botToken);
-
             // 测试连接是否成功
             this.testConnection()
                 .then(() => {
-                    storage.telegramSettingsManager.setConnected(true);
-                    utils.showNotification('Telegram Bot连接成功！', 'success');
-                    resolve(true);
+                     // 保存Bot Token和连接状态
+                     storage.telegramSettingsManager.saveSettings({
+                         botToken: botToken,
+                         isConnected: true,
+                         lastConnected: new Date().toISOString()
+                     });
+                       
+                     // 额外的本地存储备份
+                     try {
+                         localStorage.setItem('TELEGRAM_SETTINGS_BACKUP', JSON.stringify({
+                             botToken: botToken,
+                             isConnected: true,
+                             lastConnected: new Date().toISOString()
+                         }));
+                     } catch (e) {
+                         console.warn('本地存储备份失败:', e);
+                     }
+                      
+                     utils.showNotification('Telegram Bot连接成功！', 'success');
+                     resolve(true);
                 })
                 .catch(error => {
                     storage.telegramSettingsManager.setConnected(false);
@@ -208,12 +222,50 @@ window.telegramIntegration = {
 
     // 获取连接状态
     getConnectionStatus() {
-        return {
-            isConnected: storage.telegramSettingsManager.isConnected(),
-            botKey: storage.telegramSettingsManager.getBotKey(),
-            isMonitoring: storage.telegramSettingsManager.isMonitoring(),
-            chatIds: storage.telegramSettingsManager.getChatIds()
-        };
+        try {
+            // 首先尝试从主存储获取
+            const isConnected = storage.telegramSettingsManager.isConnected();
+            const botKey = storage.telegramSettingsManager.getBotKey();
+            const isMonitoring = storage.telegramSettingsManager.isMonitoring();
+            const chatIds = storage.telegramSettingsManager.getChatIds();
+            
+            // 如果主存储没有或连接状态为false，尝试从备份存储恢复
+            if (!isConnected || !botKey) {
+                try {
+                    const backupSettings = localStorage.getItem('TELEGRAM_SETTINGS_BACKUP');
+                    if (backupSettings) {
+                        const parsedBackup = JSON.parse(backupSettings);
+                        // 验证备份数据
+                        if ((parsedBackup.botKey || parsedBackup.botToken) && parsedBackup.isConnected) {
+                             console.log('从备份恢复Telegram配置');
+                             // 尝试重新连接
+                             setTimeout(() => {
+                                 this.connectBot(parsedBackup.botKey || parsedBackup.botToken).catch(e => console.warn('自动重连失败:', e));
+                             }, 1000);
+                         }
+                    }
+                } catch (e) {
+                    console.warn('恢复备份配置失败:', e);
+                }
+            }
+            
+            return {
+                isConnected: isConnected,
+                botKey: botKey,
+                isMonitoring: isMonitoring,
+                chatIds: chatIds,
+                hasSettings: !!botKey
+            };
+        } catch (error) {
+            console.error('获取Telegram连接状态失败:', error);
+            return {
+                isConnected: false,
+                botKey: null,
+                isMonitoring: false,
+                chatIds: [],
+                hasSettings: false
+            };
+        }
     },
 
     // 断开连接
@@ -231,19 +283,54 @@ window.telegramIntegration = {
 
     // 初始化模块
     init() {
-        // 从存储中加载设置
-        const settings = storage.telegramSettingsManager.getSettings();
-        if (settings && settings.botToken && settings.isConnected) {
-            // 自动尝试重连
-            this.testConnection()
-                .then(() => {
-                    storage.telegramSettingsManager.setConnected(true);
-                    console.log('Telegram Bot自动重连成功');
-                })
-                .catch(error => {
-                    console.warn('Telegram Bot自动重连失败:', error);
-                    storage.telegramSettingsManager.setConnected(false);
-                });
+        console.log('初始化Telegram集成');
+        
+        try {
+            // 检查是否已有保存的连接设置
+            const settings = storage.telegramSettingsManager.getSettings();
+            if (settings && settings.botToken && settings.isConnected) {
+                console.log('检测到已保存的Telegram连接设置，尝试自动重连');
+                // 自动尝试重连
+                this.testConnection()
+                    .then(() => {
+                        storage.telegramSettingsManager.setConnected(true);
+                        console.log('Telegram Bot自动重连成功');
+                    })
+                    .catch(error => {
+                        console.warn('Telegram Bot自动重连失败:', error);
+                        storage.telegramSettingsManager.setConnected(false);
+                    });
+            } else {
+                // 尝试从备份恢复
+                try {
+                    const backupSettings = localStorage.getItem('TELEGRAM_SETTINGS_BACKUP');
+                    if (backupSettings) {
+                        const parsedBackup = JSON.parse(backupSettings);
+                        if (parsedBackup.botKey && parsedBackup.isConnected) {
+                            console.log('从备份恢复Telegram配置并尝试重连');
+                            // 保存回主存储
+                             storage.telegramSettingsManager.saveSettings({
+                                 botToken: parsedBackup.botKey || parsedBackup.botToken,
+                                 isConnected: parsedBackup.isConnected,
+                                 lastConnected: parsedBackup.lastConnected || new Date().toISOString()
+                             });
+                            // 自动尝试重连
+                            this.testConnection()
+                                .then(() => {
+                                    console.log('Telegram Bot从备份恢复并连接成功');
+                                })
+                                .catch(error => {
+                                    console.warn('Telegram Bot从备份恢复但连接失败:', error);
+                                    storage.telegramSettingsManager.setConnected(false);
+                                });
+                        }
+                    }
+                } catch (e) {
+                    console.warn('恢复备份配置失败:', e);
+                }
+            }
+        } catch (error) {
+            console.error('初始化Telegram集成失败:', error);
         }
     }
 };

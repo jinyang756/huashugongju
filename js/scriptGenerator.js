@@ -1,6 +1,6 @@
 /**
- * 脚本生成模块
- * 负责处理脚本生成的核心逻辑
+ * 证券投资交流群脚本生成模块
+ * 负责处理证券投资交流话术生成的核心逻辑
  */
 
 // 将脚本生成器挂载到全局对象
@@ -59,7 +59,7 @@ scriptGenerator.AVAILABLE_ROLES = [
 
 // 生成对话脚本的核心函数
 scriptGenerator.generateScript = async function(prompt, options = {}) {
-    const { model = 'gpt-3.5', style = 'professional', length = 5, language = 'zh', contextHistory = [], characterRole = '客服-用户', knowledgeBaseItems = [] } = options;
+    const { model = 'gpt-3.5', style = 'professional', length = 5, language = 'zh', contextHistory = [], characterRole = '分析师-投资者', knowledgeBaseItems = [] } = options;
     
     try {
         // 显示加载状态
@@ -159,20 +159,22 @@ scriptGenerator.simulateApiCall = async function(prompt, options) {
 // 根据角色类型获取角色名称 - 证券投资专用
 scriptGenerator.getRoleNames = function(characterRole) {
     const roleMap = {
-        '客服-用户': { userRole: '用户', aiRole: '客服' },
-        '老师-学生': { userRole: '学生', aiRole: '老师' },
-        '医生-患者': { userRole: '患者', aiRole: '医生' },
-        '销售-客户': { userRole: '客户', aiRole: '销售' },
-        '面试官-面试者': { userRole: '面试者', aiRole: '面试官' },
-        '教练-学员': { userRole: '学员', aiRole: '教练' },
         // 证券投资交流群专用角色
         '分析师-投资者': { userRole: '投资者', aiRole: '分析师' },
         '资深股民-新手': { userRole: '新手', aiRole: '资深股民' },
         '股票推荐者-跟随者': { userRole: '跟随者', aiRole: '股票推荐者' },
-        '市场评论员-听众': { userRole: '听众', aiRole: '市场评论员' }
+        '市场评论员-听众': { userRole: '听众', aiRole: '市场评论员' },
+        '基金经理-客户': { userRole: '客户', aiRole: '基金经理' },
+        '投资顾问-咨询者': { userRole: '咨询者', aiRole: '投资顾问' },
+        '技术高手-学习者': { userRole: '学习者', aiRole: '技术高手' },
+        '价值投资者-讨论者': { userRole: '讨论者', aiRole: '价值投资者' },
+        '短线交易者-交流者': { userRole: '交流者', aiRole: '短线交易者' },
+        '行业专家-关注者': { userRole: '关注者', aiRole: '行业专家' },
+        '量化分析员-实践者': { userRole: '实践者', aiRole: '量化分析员' },
+        '财经媒体人-读者': { userRole: '读者', aiRole: '财经媒体人' }
     };
     
-    return roleMap[characterRole] || roleMap['客服-用户'];
+    return roleMap[characterRole] || roleMap['分析师-投资者'];
 }
 
 // 获取风格前缀
@@ -444,96 +446,31 @@ scriptGenerator.generateUserMessage = function(prompt, round, totalRounds, style
                 `希望能看到更多您关于${prompt}的深度报道。`
             ]
         },
-        // 原有角色模板
-        '客服-用户': {
-            opening: [
-                `你好，我想咨询关于${prompt}的问题，能帮我吗？`,
-                `请问你们的${prompt}服务是怎么收费的？`,
-                `我对${prompt}有一些疑问，希望能得到解答。`,
-                `我在使用${prompt}时遇到了问题，该如何解决？`
-            ],
-            middle: [
-                `那如果我要办理${prompt}，需要准备什么材料？`,
-                `你们的${prompt}服务有什么保障措施吗？`,
-                `能详细介绍一下${prompt}的具体流程吗？`,
-                `如果使用${prompt}后不满意，可以退款吗？`
-            ],
-            closing: [
-                `非常感谢你的解答，我已经了解了${prompt}的相关信息。`,
-                `按照你的建议，我会尝试使用${prompt}服务。`,
-                `这些信息对我很有帮助，谢谢！`,
-                `请问还有其他关于${prompt}的注意事项吗？`
-            ]
-        },
-        '老师-学生': {
-            opening: [
-                `老师，我不太理解${prompt}这个知识点，能给我解释一下吗？`,
-                `关于${prompt}，我有几个问题想请教您。`,
-                `老师，请问${prompt}应该怎么应用到实际问题中？`,
-                `您能帮我梳理一下${prompt}的核心概念吗？`
-            ],
-            middle: [
-                `那${prompt}和之前学的${scriptGenerator.getRelatedConcept(prompt)}有什么联系吗？`,
-                `如果遇到${prompt}相关的问题，应该从哪些方面思考？`,
-                `您能举几个关于${prompt}的实际例子吗？`,
-                `学习${prompt}有没有什么有效的方法或技巧？`
-            ],
-            closing: [
-                `谢谢您的讲解，我对${prompt}有了更清晰的认识。`,
-                `我会按照您说的方法继续学习${prompt}。`,
-                `这些例子对理解${prompt}很有帮助，谢谢！`,
-                `关于${prompt}，我还需要做哪些练习来巩固？`
-            ]
-        },
-        '医生-患者': {
-            opening: [
-                `医生，我最近${prompt}不太舒服，请问是什么原因？`,
-                `我想咨询一下${prompt}的治疗方法有哪些？`,
-                `我体检时发现${prompt}指标有异常，需要进一步检查吗？`,
-                `医生，我想了解${prompt}的预防措施。`
-            ],
-            middle: [
-                `那治疗${prompt}需要长期服药吗？`,
-                `这个病会有什么并发症吗？`,
-                `在日常生活中，我需要注意哪些方面来缓解${prompt}？`,
-                `有没有什么饮食建议可以帮助改善${prompt}？`
-            ],
-            closing: [
-                `谢谢您的建议，我会按照您说的去做。`,
-                `请问多久需要复诊一次来监测${prompt}的情况？`,
-                `这些注意事项我记下了，谢谢医生！`,
-                `如果${prompt}症状加重，我应该怎么办？`
-            ]
-        },
-        '销售-客户': {
-            opening: [
-                `你好，我想了解一下你们的${prompt}产品。`,
-                `请问${prompt}有哪些不同的型号或版本？`,
-                `你们的${prompt}相比其他品牌有什么优势？`,
-                `能给我介绍一下${prompt}的主要功能吗？`
-            ],
-            middle: [
-                `那${prompt}的价格是多少？有什么优惠活动吗？`,
-                `购买${prompt}后有保修服务吗？`,
-                `如果使用一段时间后对${prompt}不满意，可以退换吗？`,
-                `安装或使用${prompt}有什么技术要求吗？`
-            ],
-            closing: [
-                `谢谢你的介绍，我考虑一下购买${prompt}。`,
-                `这些信息很有帮助，我会和家人商量一下${prompt}的购买事宜。`,
-                `请问什么时候有货？我想尽快购买${prompt}。`,
-                `能留下联系方式吗？我决定购买${prompt}后联系你。`
-            ]
-        }
+
     };
     
-    // 默认使用客服-用户的模板
-    const templates = roleTemplates[characterRole] || roleTemplates['客服-用户'];
+    // 默认使用分析师-投资者的模板
+    const templates = roleTemplates[characterRole] || roleTemplates['分析师-投资者'];
     
     // 如果有上下文历史，可以基于最后一条消息生成更连贯的问题
     if (contextHistory && contextHistory.length > 0 && round > 1) {
         const lastMessage = contextHistory[contextHistory.length - 1];
-        if (lastMessage.role && lastMessage.role.includes('客服') || lastMessage.role.includes('AI') || lastMessage.role.includes('老师') || lastMessage.role.includes('医生') || lastMessage.role.includes('销售')) {
+        // 检查是否是AI角色的回复（证券投资相关角色）
+        if (lastMessage.role && (
+            lastMessage.role.includes('分析师') || 
+            lastMessage.role.includes('资深股民') || 
+            lastMessage.role.includes('股票推荐者') || 
+            lastMessage.role.includes('市场评论员') || 
+            lastMessage.role.includes('基金经理') || 
+            lastMessage.role.includes('投资顾问') || 
+            lastMessage.role.includes('技术高手') || 
+            lastMessage.role.includes('价值投资者') || 
+            lastMessage.role.includes('短线交易者') || 
+            lastMessage.role.includes('行业专家') || 
+            lastMessage.role.includes('量化分析员') || 
+            lastMessage.role.includes('财经媒体人') || 
+            lastMessage.role.includes('AI')
+        )) {
             // 根据上一条AI消息生成相关问题
             return generateFollowUpQuestion(prompt, lastMessage.content, templates.middle);
         }
@@ -550,37 +487,9 @@ scriptGenerator.generateUserMessage = function(prompt, round, totalRounds, style
 }
 
 // 生成AI消息 - 集成知识库内容
-scriptGenerator.generateAIMessage = function(prompt, round, totalRounds, style, contextHistory = [], characterRole = '客服-用户', knowledgeBaseItems = [], knowledgeWeight = 0.5) {
+scriptGenerator.generateAIMessage = function(prompt, round, totalRounds, style, contextHistory = [], characterRole = '分析师-投资者', knowledgeBaseItems = [], knowledgeWeight = 0.5) {
     // 根据角色和风格选择适合的响应模板
     const roleStyleResponses = {
-        '客服-用户': {
-            'professional': `非常理解您对${prompt}的关注。我们的${prompt}服务旨在为客户提供高效、专业的解决方案。根据您的需求，我建议您可以考虑以下几个方面：首先，明确您的具体需求；其次，了解我们的服务流程；最后，根据预算选择合适的方案。如有任何疑问，我很乐意为您提供更详细的信息。`,
-            'friendly': `您好！很高兴为您解答关于${prompt}的问题。我们的${prompt}服务一直以来都受到客户的好评，主要是因为我们注重细节和用户体验。您可以告诉我您的具体需求，我会为您推荐最适合的解决方案。如果您有任何其他问题，随时都可以问我哦！`,
-            'casual': `关于${prompt}啊，我觉得您的需求很合理。我们这里有几种不同的方案，您可以根据自己的情况选择。简单来说，${prompt}主要就是帮您解决特定问题的服务。您看您更倾向于哪种方式呢？`,
-            'persuasive': `我强烈推荐您体验我们的${prompt}服务。很多像您这样的客户在使用后都反馈效果显著。通过${prompt}，您不仅能解决当前的问题，还能获得长期的价值。现在正是尝试的好时机，我们还有特别的优惠活动。`,
-            'empathetic': `我完全理解您现在的感受，面对${prompt}这样的问题确实会让人感到困惑。别担心，我们的团队有丰富的经验，可以帮您顺利解决。让我们一步步来，先了解您的具体情况，然后为您提供量身定制的解决方案。`
-        },
-        '老师-学生': {
-            'professional': `${prompt}是一个重要的知识点。从理论角度来看，它主要涉及到以下几个方面：概念定义、基本原理、应用场景以及与其他知识点的联系。为了更好地理解${prompt}，建议您结合实际案例进行学习，并通过练习来巩固所学知识。如有任何疑问，请随时提出。`,
-            'friendly': `很高兴你对${prompt}感兴趣！这是一个非常有趣的知识点。简单来说，${prompt}就是关于某个特定领域的规律或方法。为了帮助你理解，我可以举几个生活中的例子：比如...通过这些例子，你是不是对${prompt}有了更直观的认识？`,
-            'casual': `关于${prompt}啊，其实没你想的那么复杂。咱们换个角度看，它就是解决某类问题的一种思路。你看，日常生活中我们经常会用到类似的思维方式。这样解释，你是不是更容易理解了？有什么具体的问题，咱们可以一起讨论。`,
-            'persuasive': `掌握${prompt}对你的学习和未来发展都非常重要。很多成功的案例都证明，深入理解${prompt}可以帮助你在相关领域取得更好的成绩。现在投入时间学习${prompt}，将来一定会有丰厚的回报。让我们一起努力，攻克这个知识点！`,
-            'empathetic': `我完全理解你在学习${prompt}时遇到的困难，这是很正常的。刚开始接触新知识点时，大家都会有这样的感受。别着急，让我用更简单的方式为你解释。我们可以从最基础的概念入手，然后逐步深入到更复杂的内容。相信通过我们的共同努力，你一定能掌握${prompt}。`
-        },
-        '医生-患者': {
-            'professional': `关于您的${prompt}问题，根据医学研究和临床经验，主要考虑以下几种可能性：首先，可能是由于...引起的；其次，需要排除...的因素；最后，建议您进行...检查以明确诊断。在治疗方面，目前主要有...几种方法，我会根据您的具体情况为您推荐最合适的方案。`,
-            'friendly': `您好！关于您提到的${prompt}问题，我先为您做一个简单的解释。这种情况在临床上比较常见，不必过于担心。为了更准确地了解您的情况，我需要问您几个问题：您的症状持续了多久？有没有伴随其他不适？之前有没有接受过相关治疗？了解这些信息后，我才能为您提供更有针对性的建议。`,
-            'casual': `关于您说的${prompt}问题，咱们先别急着下结论。这种情况有很多可能的原因，需要进一步了解情况。您可以跟我详细描述一下症状，比如什么时候开始的，有什么规律，有没有什么因素会加重或缓解症状。了解这些信息后，我才能更好地帮助您。`,
-            'persuasive': `针对您的${prompt}问题，我建议您尽快接受正规治疗。早期干预对于改善预后非常重要。根据您的情况，我推荐的治疗方案是...，这个方案已经在很多患者身上取得了良好的效果。请相信科学，积极配合治疗，我相信您的情况会很快得到改善。`,
-            'empathetic': `我非常理解您现在的担忧和不安，面对${prompt}这样的健康问题，任谁都会感到焦虑。请相信我，我们的医疗团队有丰富的经验，一定能帮助您度过这个难关。让我们一起制定一个详细的治疗计划，我会全程陪伴您，解答您的每一个疑问。请放心，您不是一个人在战斗。`
-        },
-        '销售-客户': {
-            'professional': `感谢您对我们的${prompt}产品感兴趣。${prompt}是我们的明星产品，具有以下几个核心优势：首先，它采用了最新的技术，性能卓越；其次，设计人性化，使用便捷；最后，我们提供完善的售后服务体系，让您无后顾之忧。根据您的需求，我推荐您选择...型号，它最适合像您这样的用户。`,
-            'friendly': `您好！看到您对${prompt}感兴趣，我真的很开心！这是我们团队精心打造的产品，很多用户使用后都赞不绝口。您能告诉我您主要用${prompt}来做什么吗？了解您的需求后，我可以为您推荐最适合的款式和配置。如果您有任何疑问，随时都可以问我哦！`,
-            'casual': `嘿，您眼光真不错！${prompt}确实是一款很棒的产品。我自己也在用，感觉特别好用。它的主要特点就是...您看，这些功能是不是正好符合您的需求？如果您觉得合适，我可以帮您介绍一下具体的购买流程和售后服务。`,
-            'persuasive': `我向您保证，选择${prompt}绝对是明智之举。这款产品不仅质量过硬，而且性价比极高。现在购买还有特别优惠，机不可失。很多像您这样的客户在犹豫之后购买，都反馈说后悔没有早点下手。相信我，${prompt}一定会超出您的期望！`,
-            'empathetic': `我完全理解您在购买${prompt}时的顾虑，毕竟这是一笔不小的支出。请放心，我们的${prompt}产品质量有保证，而且我们提供完善的售后服务。如果您使用后有任何不满意，我们承诺...您看，这样是不是能让您更放心一些？`
-        },
         // 证券投资交流群角色模板
         '分析师-投资者': {
             '专业分析': `根据${prompt}的技术面和基本面分析，我们可以看到以下几个关键点：首先，从K线形态来看，${prompt}近期形成了明显的看涨信号；其次，从基本面分析，公司最新财报显示业绩超预期，营收和净利润均有显著增长；再者，从行业角度，${prompt}所在板块正处于政策红利期。综合来看，${prompt}具备中长期投资价值。`,
@@ -660,8 +569,8 @@ scriptGenerator.generateAIMessage = function(prompt, round, totalRounds, style, 
     if (roleStyleResponses[characterRole] && roleStyleResponses[characterRole][style]) {
         baseResponse = roleStyleResponses[characterRole][style];
     } else {
-        // 默认使用客服-用户的专业风格
-        baseResponse = roleStyleResponses['客服-用户']['professional'];
+        // 默认使用分析师-投资者的专业分析风格
+        baseResponse = roleStyleResponses['分析师-投资者']['专业分析'];
     }
     
     // 添加一些变化使对话更自然
@@ -722,9 +631,12 @@ scriptGenerator.generateAIMessage = function(prompt, round, totalRounds, style, 
     let contextualResponse = baseResponse;
     if (contextHistory && contextHistory.length > 0) {
         const lastUserMessage = contextHistory.find(item => 
-            item.role.includes('用户') || item.role.includes('学生') || 
-            item.role.includes('患者') || item.role.includes('客户') || 
-            item.role.includes('面试者') || item.role.includes('学员')
+            item.role.includes('投资者') || item.role.includes('新手') || 
+            item.role.includes('跟随者') || item.role.includes('听众') || 
+            item.role.includes('客户') || item.role.includes('咨询者') || 
+            item.role.includes('学习者') || item.role.includes('讨论者') || 
+            item.role.includes('交流者') || item.role.includes('关注者') || 
+            item.role.includes('实践者') || item.role.includes('读者')
         );
         
         if (lastUserMessage) {
@@ -754,15 +666,17 @@ scriptGenerator.getRelatedConcept = function(prompt) {
 
 // 辅助函数：基于上下文生成跟进问题
 scriptGenerator.generateFollowUpQuestion = function(prompt, lastMessage, middleTemplates) {
-    // 简单的关键词匹配来生成相关问题
-    if (lastMessage.includes('流程')) {
-        return `那在${prompt}的流程中，有没有什么需要特别注意的环节？`;
-    } else if (lastMessage.includes('费用') || lastMessage.includes('价格')) {
-        return `关于${prompt}的费用，有什么优惠政策吗？`;
-    } else if (lastMessage.includes('时间') || lastMessage.includes('周期')) {
-        return `完成${prompt}大概需要多长时间？`;
-    } else if (lastMessage.includes('效果') || lastMessage.includes('收益')) {
-        return `使用${prompt}后，一般能达到什么样的效果？`;
+    // 简单的关键词匹配来生成相关问题 - 证券投资专用
+    if (lastMessage.includes('走势')) {
+        return `那${prompt}未来一周的走势会如何？有什么支撑位和压力位？`;
+    } else if (lastMessage.includes('估值')) {
+        return `您觉得${prompt}当前的估值水平合理吗？是高估还是低估？`;
+    } else if (lastMessage.includes('风险')) {
+        return `投资${prompt}的主要风险有哪些？应该如何规避？`;
+    } else if (lastMessage.includes('业绩')) {
+        return `${prompt}的最新财报情况如何？有没有超预期的地方？`;
+    } else if (lastMessage.includes('目标价')) {
+        return `您给${prompt}设定的目标价是多少？大概什么时候能达到？`;
     }
     
     // 如果没有匹配的关键词，随机返回一个中间模板
@@ -771,15 +685,18 @@ scriptGenerator.generateFollowUpQuestion = function(prompt, lastMessage, middleT
 
 // 辅助函数：根据上下文调整响应
 scriptGenerator.adaptResponseToContext = function(baseResponse, prompt, userMessage) {
-    // 简单的调整逻辑，实际应用中可以更复杂
+    // 简单的调整逻辑，实际应用中可以更复杂 - 证券投资专用
     let adaptedResponse = baseResponse;
 
-    if (userMessage.includes('价格') || userMessage.includes('费用')) {
-        adaptedResponse = adaptedResponse.replace('我们的服务', `我们的服务价格合理，性价比高`);
-    } else if (userMessage.includes('时间') || userMessage.includes('周期')) {
-        adaptedResponse = adaptedResponse.replace('我们的服务', `我们的服务效率高，时间周期短`);
-    } else if (userMessage.includes('质量') || userMessage.includes('效果')) {
-        adaptedResponse = adaptedResponse.replace('我们的服务', `我们的服务质量有保障，效果显著`);
+    if (userMessage.includes('走势') || userMessage.includes('股价')) {
+        // 重点关注走势问题
+        adaptedResponse = adaptedResponse.replace(/根据.*分析/, `从技术面和资金面分析`);
+    } else if (userMessage.includes('估值') || userMessage.includes('价值')) {
+        // 重点关注估值问题
+        adaptedResponse = adaptedResponse.replace(/综合来看/, `从估值角度来看`);
+    } else if (userMessage.includes('风险') || userMessage.includes('注意')) {
+        // 重点关注风险问题
+        adaptedResponse = adaptedResponse.replace(/具备.*价值/, `具备一定投资价值，但需要注意风险控制`);
     }
 
     return adaptedResponse;

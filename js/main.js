@@ -92,8 +92,24 @@ async function initApp() {
         setupModalCloseEvent();
         
         // 初始化Telegram连接状态
-        const telegramStatus = window.telegramIntegration.getConnectionStatus();
-        updateTelegramConnectionStatus(telegramStatus.isConnected);
+        try {
+            if (window.telegramIntegration) {
+                const telegramStatus = window.telegramIntegration.getConnectionStatus();
+                updateTelegramConnectionStatus(telegramStatus.isConnected);
+                console.log('Telegram连接状态初始化完成:', telegramStatus);
+            }
+        } catch (error) {
+            console.error('初始化Telegram连接状态失败:', error);
+            // 即使初始化失败，也要确保连接按钮可用
+            const connectButton = document.querySelector('.telegram-connect') || document.getElementById('telegram-connect-btn');
+            if (connectButton) {
+                connectButton.textContent = '连接';
+                connectButton.disabled = false;
+            }
+        }
+        
+        // 检查和修复Telegram配置
+        setTimeout(checkAndFixTelegramConfig, 1000);
     } catch (error) {
         console.error('应用初始化失败:', error);
         utils.showNotification('应用初始化失败，请刷新页面重试。', 'error');
@@ -301,12 +317,20 @@ function registerEventListeners() {
         });
     }
     
-    if (elements.telegramConnectButton && elements.telegramConnectButton.textContent.includes('连接')) {
+    if (elements.telegramConnectButton) {
         console.log('绑定Telegram连接按钮点击事件');
         elements.telegramConnectButton.addEventListener('click', function() {
             console.log('Telegram连接按钮被点击');
             handleTelegramConnectClick();
         });
+    } else {
+        console.warn('Telegram连接按钮未找到');
+        // 如果找不到按钮，尝试在DOM中查找其他可能的Telegram连接元素
+        const altTelegramButton = document.querySelector('[data-telegram-connect]') || document.querySelector('.telegram-config');
+        if (altTelegramButton) {
+            console.log('找到替代的Telegram连接元素');
+            altTelegramButton.addEventListener('click', handleTelegramConnectClick);
+        }
     }
     
     // 监听输入框变化，实现自动保存草稿
@@ -1044,7 +1068,10 @@ function setupModalCloseEvent() {
 // 显示Telegram连接模态框
 function showTelegramConnectModal() {
     // 检查是否已存在模态框
-    if (document.getElementById('telegram-connect-modal')) {
+    const existingModal = document.getElementById('telegram-connect-modal');
+    if (existingModal) {
+        // 如果模态框已存在但被隐藏，直接显示它
+        existingModal.style.display = 'flex';
         return;
     }
     
@@ -1260,16 +1287,11 @@ function showTelegramConnectModal() {
 function hideTelegramConnectModal() {
     const modal = document.getElementById('telegram-connect-modal');
     if (modal) {
-        modal.remove();
+        // 不直接移除模态框，而是隐藏它，以便下次快速显示
+        modal.style.display = 'none';
     }
     
-    // 移除样式
-    const styles = document.head.querySelectorAll('style');
-    styles.forEach(style => {
-        if (style.textContent.includes('.modal-overlay')) {
-            style.remove();
-        }
-    });
+    // 不移除样式，避免重新创建时的闪烁
 }
 
 // 处理Telegram连接按钮点击
@@ -1311,19 +1333,25 @@ function connectToTelegram() {
 
 // 更新Telegram连接状态UI
 function updateTelegramConnectionStatus(isConnected) {
-    const connectButton = document.getElementById('telegram-connect-btn');
+    // 尝试查找所有可能的连接按钮
+    const connectButtons = [
+        document.getElementById('telegram-connect-btn'),
+        document.querySelector('.telegram-connect'),
+        document.querySelector('[data-telegram-connect]')
+    ].filter(Boolean);
     
-    if (connectButton) {
+    // 更新所有找到的连接按钮
+    connectButtons.forEach(button => {
         if (isConnected) {
-            connectButton.textContent = '已连接';
-            connectButton.classList.add('btn-success');
-            connectButton.classList.remove('btn-primary');
+            button.textContent = '已连接';
+            button.classList.add('btn-success');
+            button.classList.remove('btn-primary');
         } else {
-            connectButton.textContent = '连接';
-            connectButton.classList.add('btn-primary');
-            connectButton.classList.remove('btn-success');
+            button.textContent = '连接';
+            button.classList.add('btn-primary');
+            button.classList.remove('btn-success');
         }
-    }
+    });
     
     // 如果有监控按钮，也更新其状态
     const monitorButton = document.getElementById('telegram-monitor-btn');
@@ -1339,6 +1367,11 @@ function updateTelegramConnectionStatus(isConnected) {
         } else {
             telegramMonitorMenuItem.classList.add('menu-item-disabled');
         }
+    }
+    
+    // 保存连接状态到本地存储（以防万一）
+    if (storage && storage.telegramSettingsManager) {
+        storage.telegramSettingsManager.setConnected(isConnected);
     }
 }
 
@@ -1805,3 +1838,84 @@ function loadRecentRecordsWithKnowledgeFilter() {
 
 // 替换原有的loadRecentRecords函数
 window.loadRecentRecords = loadRecentRecordsWithKnowledgeFilter;
+
+// 检查和修复Telegram配置
+function checkAndFixTelegramConfig() {
+    try {
+        console.log('===== 检查Telegram配置 =====');
+        
+        // 检查主存储
+        const mainSettings = storage.telegramSettingsManager.getSettings();
+        console.log('主存储配置:', mainSettings);
+        
+        // 检查备份存储
+        let backupSettings = null;
+        try {
+            const backupData = localStorage.getItem('TELEGRAM_SETTINGS_BACKUP');
+            if (backupData) {
+                backupSettings = JSON.parse(backupData);
+                console.log('备份存储配置:', backupSettings);
+            } else {
+                console.log('没有找到备份配置');
+            }
+        } catch (e) {
+            console.error('读取备份配置失败:', e);
+        }
+        
+        // 检查是否需要从备份恢复
+        if ((!mainSettings || !mainSettings.botToken) && backupSettings && (backupSettings.botToken || backupSettings.botKey)) {
+            console.log('需要从备份恢复配置');
+            storage.telegramSettingsManager.saveSettings({
+                botToken: backupSettings.botToken || backupSettings.botKey,
+                isConnected: backupSettings.isConnected,
+                lastConnected: backupSettings.lastConnected || new Date().toISOString()
+            });
+            console.log('配置已从备份恢复');
+            
+            // 尝试自动重连
+            if (window.telegramIntegration && window.telegramIntegration.connectBot) {
+                setTimeout(() => {
+                    window.telegramIntegration.connectBot(backupSettings.botToken || backupSettings.botKey)
+                        .then(result => {
+                            if (result.success) {
+                                console.log('Telegram自动重连成功');
+                            }
+                        })
+                        .catch(e => console.warn('自动重连失败:', e));
+                }, 2000);
+            }
+        }
+        
+        // 检查连接按钮是否存在
+        const connectButtons = [
+            document.getElementById('telegram-connect-btn'),
+            document.querySelector('.telegram-connect'),
+            document.querySelector('[data-telegram-connect]')
+        ].filter(Boolean);
+        
+        console.log('找到的连接按钮数量:', connectButtons.length);
+        if (connectButtons.length === 0) {
+            console.warn('未找到Telegram连接按钮');
+        } else {
+            // 确保所有连接按钮都可用
+            connectButtons.forEach(button => {
+                button.disabled = false;
+            });
+        }
+        
+        // 检查侧边栏菜单项
+        const telegramMenuItem = document.querySelector('[data-menu-item="telegram-monitor"]');
+        if (telegramMenuItem) {
+            console.log('侧边栏Telegram菜单项存在');
+        } else {
+            console.warn('未找到侧边栏Telegram菜单项');
+        }
+        
+        console.log('===== Telegram配置检查完成 =====');
+    } catch (error) {
+        console.error('检查Telegram配置失败:', error);
+    }
+}
+
+// 暴露给全局，方便调试
+window.checkAndFixTelegramConfig = checkAndFixTelegramConfig;
